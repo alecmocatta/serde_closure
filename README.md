@@ -2,8 +2,8 @@
 
 [![Crates.io](https://img.shields.io/crates/v/serde_closure.svg?style=flat-square&maxAge=86400)](https://crates.io/crates/serde_closure)
 [![Apache-2.0 licensed](https://img.shields.io/crates/l/serde_closure.svg?style=flat-square&maxAge=2592000)](LICENSE.txt)
-[![Build Status](https://ci.appveyor.com/api/projects/status/github/alecmocatta/serde_closure?branch=master&svg=true)](https://ci.appveyor.com/project/alecmocatta/serde_closure)
-[![Build Status](https://circleci.com/gh/alecmocatta/serde_closure/tree/master.svg?style=svg)](https://circleci.com/gh/alecmocatta/serde_closure)
+[![Build Status](https://ci.appveyor.com/api/projects/status/github/alecmocatta/serde_closure?branch=master&svg=true)](https://ci.appveyor.com/project/alecmocatta/serde-closure)
+[![Build Status](https://circleci.com/gh/alecmocatta/serde_closure/tree/master.svg?style=shield)](https://circleci.com/gh/alecmocatta/serde_closure)
 [![Build Status](https://travis-ci.com/alecmocatta/serde_closure.svg?branch=master)](https://travis-ci.com/alecmocatta/serde_closure)
 
 [Docs](https://docs.rs/serde_closure/0.1.0)
