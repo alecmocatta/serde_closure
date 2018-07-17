@@ -1,0 +1,23 @@
+version: 2
+jobs:
+  build:
+    docker:
+      - image: ubuntu:latest
+    steps:
+      - checkout
+      - restore_cache:
+          key: cache
+      - run:
+          command: |
+            apt update && apt install --yes curl gcc
+            curl https://sh.rustup.rs -sSf | sh -s -- -y --default-toolchain nightly
+            source $HOME/.cargo/env
+            cargo build --verbose $(if [ -n "$TARGET" ]; then echo "--target $TARGET"; fi)
+            cargo build --verbose $(if [ -n "$TARGET" ]; then echo "--target $TARGET"; fi) --release
+            RUST_BACKTRACE=full cargo test $(if [ -n "$TARGET" ]; then echo "--target $TARGET"; fi)
+            RUST_BACKTRACE=full cargo test $(if [ -n "$TARGET" ]; then echo "--target $TARGET"; fi) --release
+      - save_cache:
+          key: cache
+          paths:
+            - "~/.cargo"
+            - "./target"

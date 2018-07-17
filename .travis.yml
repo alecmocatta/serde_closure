@@ -1,0 +1,51 @@
+language: rust
+rust: nightly
+cache:
+  - cargo
+git:
+  depth: 1
+
+env:
+  global:
+    - FMT_VERSION=nightly-2018-07-17
+    - DOCS_RS_VERSION=nightly-2018-07-07 # https://docs.rs/about
+
+matrix:
+  include:
+    - os: linux
+      dist: precise
+    - os: linux
+      dist: trusty
+      sudo: false
+    - os: linux
+      dist: trusty
+      sudo: required # https://docs.travis-ci.com/user/reference/overview/
+    - os: osx
+      osx_image: xcode6.4 # https://docs.travis-ci.com/user/reference/osx/
+    - os: osx
+      osx_image: xcode8.3
+    - os: osx
+      osx_image: xcode9.4
+
+    - os: linux
+      env: TARGET=x86_64-unknown-linux-musl
+    - os: osx
+      env: TARGET=x86_64-unknown-linux-musl RUSTFLAGS=-Zlinker-flavor=ld.lld NO_RUN=1
+
+before_script:
+  - if [ -n "$TARGET" ]; then rustup target add "$TARGET"; fi
+  - rustup toolchain add $FMT_VERSION
+  - rustup component add rustfmt-preview --toolchain $FMT_VERSION
+  - rustup toolchain add $DOCS_RS_VERSION
+  - if [ -n "$TARGET" ]; then rustup target add --toolchain $DOCS_RS_VERSION "$TARGET"; fi
+script:
+  - cargo +$FMT_VERSION fmt -- --check
+  - cargo build --verbose $(if [ -n "$TARGET" ]; then echo "--target $TARGET"; fi)
+  - cargo build --verbose $(if [ -n "$TARGET" ]; then echo "--target $TARGET"; fi) --release
+  - if [ "$NO_RUN" != "1" ]; then RUST_BACKTRACE=full cargo test $(if [ -n "$TARGET" ]; then echo "--target $TARGET"; fi); fi
+  - if [ "$NO_RUN" != "1" ]; then RUST_BACKTRACE=full cargo test $(if [ -n "$TARGET" ]; then echo "--target $TARGET"; fi) --release; fi
+  - cargo +$DOCS_RS_VERSION doc --no-deps $(if [ -n "$TARGET" ]; then echo "--target $TARGET"; fi) &>/dev/null
+  - cargo +$DOCS_RS_VERSION doc --no-deps $(if [ -n "$TARGET" ]; then echo "--target $TARGET"; fi) --release &>/dev/null
+
+notifications:
+  email: false
