@@ -179,7 +179,8 @@
 	fn_traits,
 	core_intrinsics,
 	macro_at_most_once_rep,
-	allow_internal_unstable
+	allow_internal_unstable,
+	used
 )]
 #![deny(missing_docs, warnings, deprecated)]
 
@@ -191,6 +192,9 @@ extern crate bincode;
 #[cfg(test)]
 extern crate serde_json;
 
+mod relative_ptr;
+
+pub use relative_ptr::{RelativePtr, Text};
 use std::{cmp, fmt, hash, intrinsics, marker, mem, ops};
 
 /// A struct representing a serialisable closure, created by the [FnOnce](macro@FnOnce) macro. Implements [std::ops::FnOnce], serde's [Serialize](serde::ser::Serialize) and [Deserialize](serde::de::DeserializeOwned), and various convenience traits.
@@ -205,14 +209,14 @@ use std::{cmp, fmt, hash, intrinsics, marker, mem, ops};
 )]
 pub struct FnOnce<E, F> {
 	env: E,
-	addr: usize,
+	addr: RelativePtr<Text<FnOnce<E, F>>>,
 	#[serde(skip)]
 	marker: marker::PhantomData<F>,
 }
 impl<E, T> FnOnce<E, T> {
 	#[doc(hidden)]
 	#[inline(always)]
-	pub fn private_construct(env: E, addr: usize, _: &T) -> FnOnce<E, T> {
+	pub fn private_construct(env: E, addr: RelativePtr<Text<FnOnce<E, T>>>, _: &T) -> FnOnce<E, T> {
 		FnOnce {
 			env,
 			addr,
@@ -227,7 +231,7 @@ where
 	type Output = O;
 	#[inline(always)]
 	extern "rust-call" fn call_once(self, args: T) -> Self::Output {
-		unsafe { mem::transmute::<usize, fn(E, T) -> F::Output>(self.addr) }
+		unsafe { mem::transmute::<*const (), fn(E, T) -> F::Output>(self.addr.to_ptr()) }
 			.call_once((self.env, args))
 	}
 }
@@ -289,10 +293,7 @@ where
 	fn fmt(&self, fmt: &mut fmt::Formatter) -> fmt::Result {
 		fmt.debug_struct("FnOnce")
 			.field("env", &self.env)
-			.field(
-				unsafe { intrinsics::type_name::<T>() },
-				&(self.addr as *const ()),
-			)
+			.field(unsafe { intrinsics::type_name::<T>() }, &self.addr)
 			.finish()
 	}
 }
@@ -309,14 +310,14 @@ where
 )]
 pub struct FnMut<E, F> {
 	env: E,
-	addr: usize,
+	addr: RelativePtr<Text<FnMut<E, F>>>,
 	#[serde(skip)]
 	marker: marker::PhantomData<F>,
 }
 impl<E, T> FnMut<E, T> {
 	#[doc(hidden)]
 	#[inline(always)]
-	pub fn private_construct(env: E, addr: usize, _: &T) -> FnMut<E, T> {
+	pub fn private_construct(env: E, addr: RelativePtr<Text<FnMut<E, T>>>, _: &T) -> FnMut<E, T> {
 		FnMut {
 			env,
 			addr,
@@ -331,7 +332,7 @@ where
 	type Output = O;
 	#[inline(always)]
 	extern "rust-call" fn call_once(mut self, args: T) -> Self::Output {
-		unsafe { mem::transmute::<usize, fn(&mut E, T) -> F::Output>(self.addr) }
+		unsafe { mem::transmute::<*const (), fn(&mut E, T) -> F::Output>(self.addr.to_ptr()) }
 			.call_once((&mut self.env, args))
 	}
 }
@@ -341,7 +342,7 @@ where
 {
 	#[inline(always)]
 	extern "rust-call" fn call_mut(&mut self, args: T) -> Self::Output {
-		unsafe { mem::transmute::<usize, fn(&mut E, T) -> F::Output>(self.addr) }
+		unsafe { mem::transmute::<*const (), fn(&mut E, T) -> F::Output>(self.addr.to_ptr()) }
 			.call_mut((&mut self.env, args))
 	}
 }
@@ -403,10 +404,7 @@ where
 	fn fmt(&self, fmt: &mut fmt::Formatter) -> fmt::Result {
 		fmt.debug_struct("FnMut")
 			.field("env", &self.env)
-			.field(
-				unsafe { intrinsics::type_name::<T>() },
-				&(self.addr as *const ()),
-			)
+			.field(unsafe { intrinsics::type_name::<T>() }, &self.addr)
 			.finish()
 	}
 }
@@ -423,14 +421,14 @@ where
 )]
 pub struct Fn<E, F> {
 	env: E,
-	addr: usize,
+	addr: RelativePtr<Text<Fn<E, F>>>,
 	#[serde(skip)]
 	marker: marker::PhantomData<F>,
 }
 impl<E, T> Fn<E, T> {
 	#[doc(hidden)]
 	#[inline(always)]
-	pub fn private_construct(env: E, addr: usize, _: &T) -> Fn<E, T> {
+	pub fn private_construct(env: E, addr: RelativePtr<Text<Fn<E, T>>>, _: &T) -> Fn<E, T> {
 		Fn {
 			env,
 			addr,
@@ -445,7 +443,7 @@ where
 	type Output = O;
 	#[inline(always)]
 	extern "rust-call" fn call_once(self, args: T) -> Self::Output {
-		unsafe { mem::transmute::<usize, fn(&E, T) -> F::Output>(self.addr) }
+		unsafe { mem::transmute::<*const (), fn(&E, T) -> F::Output>(self.addr.to_ptr()) }
 			.call_once((&self.env, args))
 	}
 }
@@ -455,7 +453,7 @@ where
 {
 	#[inline(always)]
 	extern "rust-call" fn call_mut(&mut self, args: T) -> Self::Output {
-		unsafe { mem::transmute::<usize, fn(&E, T) -> F::Output>(self.addr) }
+		unsafe { mem::transmute::<*const (), fn(&E, T) -> F::Output>(self.addr.to_ptr()) }
 			.call_mut((&self.env, args))
 	}
 }
@@ -465,7 +463,7 @@ where
 {
 	#[inline(always)]
 	extern "rust-call" fn call(&self, args: T) -> Self::Output {
-		unsafe { mem::transmute::<usize, fn(&E, T) -> F::Output>(self.addr) }
+		unsafe { mem::transmute::<*const (), fn(&E, T) -> F::Output>(self.addr.to_ptr()) }
 			.call((&self.env, args))
 	}
 }
@@ -527,10 +525,7 @@ where
 	fn fmt(&self, fmt: &mut fmt::Formatter) -> fmt::Result {
 		fmt.debug_struct("Fn")
 			.field("env", &self.env)
-			.field(
-				unsafe { intrinsics::type_name::<T>() },
-				&(self.addr as *const ()),
-			)
+			.field(unsafe { intrinsics::type_name::<T>() }, &self.addr)
 			.finish()
 	}
 }
@@ -555,7 +550,7 @@ macro_rules! FnOnce {
 		}
 		$crate::FnOnce::private_construct(
 			env,
-			fn_ptr as usize,
+			$crate::RelativePtr::from_ptr(fn_ptr as *const ()),
 			&fn_ptr,
 		)
 	});
@@ -628,7 +623,7 @@ macro_rules! FnMut {
 		}
 		$crate::FnMut::private_construct(
 			env,
-			fn_ptr as usize,
+			$crate::RelativePtr::from_ptr(fn_ptr as *const ()),
 			&fn_ptr,
 		)
 	});
@@ -701,7 +696,7 @@ macro_rules! Fn {
 		}
 		$crate::Fn::private_construct(
 			env,
-			fn_ptr as usize,
+			$crate::RelativePtr::from_ptr(fn_ptr as *const ()),
 			&fn_ptr,
 		)
 	});
@@ -760,7 +755,7 @@ mod tests {
 	use bincode;
 	use serde;
 	use serde_json;
-	use std::{fmt, mem, ops};
+	use std::{env, fmt, mem, ops, process, str};
 	#[test]
 	fn fn_ptr_size() {
 		assert_eq!(mem::size_of::<usize>(), mem::size_of::<fn()>());
@@ -1024,5 +1019,80 @@ mod tests {
 			println!("{} {}", x, arg);
 		});
 		let _ = (c, c);
+	}
+	#[test]
+	fn multi_process() {
+		let exe = env::current_exe().unwrap();
+		if let Ok(x) = env::var("SPAWNED_TOKEN_SERDECLOSURE") {
+			let mut f: super::FnMut<
+				(usize, String),
+				for<'r, 's, 't0, 't1, 't2> fn(
+					&'r mut (usize, String),
+					(
+						usize,
+						&'s usize,
+						&'t0 mut usize,
+						String,
+						&'t1 String,
+						&'t2 mut String,
+					),
+				) -> String,
+			> = serde_json::from_str(&x).unwrap();
+			let mut a = 3;
+			let mut b = String::from("ghi");
+			assert_eq!(
+				f(
+					1,
+					&2,
+					&mut a,
+					String::from("abc"),
+					&String::from("def"),
+					&mut b
+				),
+				"12qwertyghiqwertyabcdef129abcdefghiqwertyabcdef"
+			);
+			println!("success_token_serdeclosure {:?}", f);
+			return;
+		}
+		let (a, b) = (3usize, String::from("qwerty"));
+		let a: super::FnMut<
+			(usize, String),
+			for<'r, 's, 't0, 't1, 't2> fn(
+				&'r mut (usize, String),
+				(
+					usize,
+					&'s usize,
+					&'t0 mut usize,
+					String,
+					&'t1 String,
+					&'t2 mut String,
+				),
+			) -> String,
+		> = FnMut!([a,b] move |c:_,d:&_,e:&mut _,f:String,g:&String,h:&mut String| -> String {
+			let b: &mut String = b;
+			*e += *a+c+*d;
+			*a += *e;
+			*h += ((b.clone()+f.as_str()+g.as_str())).as_str();
+			*b += h.as_str();
+			format!("{}{}{}{}{}{}{}{}", a, b, c, d, e, f, g, h)
+		});
+		for i in 0..100 {
+			let output = process::Command::new(&exe)
+				.arg("--nocapture")
+				.arg("--exact")
+				.arg("tests::multi_process")
+				.env(
+					"SPAWNED_TOKEN_SERDECLOSURE",
+					serde_json::to_string(&a).unwrap(),
+				)
+				.output()
+				.unwrap();
+			if !str::from_utf8(&output.stdout)
+				.unwrap()
+				.contains("success_token_serdeclosure") || !output.status.success()
+			{
+				panic!("{}: {:?}", i, output);
+			}
+		}
 	}
 }
