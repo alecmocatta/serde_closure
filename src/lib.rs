@@ -180,7 +180,8 @@
 	core_intrinsics,
 	macro_at_most_once_rep,
 	allow_internal_unstable,
-	used
+	used,
+	raw
 )]
 #![deny(missing_docs, warnings, deprecated)]
 
