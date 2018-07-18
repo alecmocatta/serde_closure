@@ -1,7 +1,7 @@
 #![allow(missing_docs,dead_code)]
 
 use serde;
-use std::{cmp, fmt, hash, intrinsics, marker};
+use std::{cmp, fmt, hash, intrinsics, marker, mem, raw};
 
 pub struct RelativePtr<B: Base>(usize, marker::PhantomData<fn(B)>);
 impl<B: Base> RelativePtr<B> {
@@ -21,28 +21,33 @@ impl<B: Base> RelativePtr<B> {
 	}
 }
 impl<B: Base> Clone for RelativePtr<B> {
+	#[inline(always)]
 	fn clone(&self) -> Self {
 		RelativePtr(self.0, marker::PhantomData)
 	}
 }
 impl<B: Base> Copy for RelativePtr<B> {}
 impl<B: Base> PartialEq for RelativePtr<B> {
+	#[inline(always)]
 	fn eq(&self, other: &Self) -> bool {
 		self.0 == other.0
 	}
 }
 impl<B: Base> Eq for RelativePtr<B> {}
 impl<B: Base> hash::Hash for RelativePtr<B> {
+	#[inline(always)]
 	fn hash<H: hash::Hasher>(&self, state: &mut H) {
 		self.0.hash(state)
 	}
 }
 impl<B: Base> cmp::PartialOrd for RelativePtr<B> {
+	#[inline(always)]
 	fn partial_cmp(&self, other: &Self) -> Option<cmp::Ordering> {
 		self.0.partial_cmp(&other.0)
 	}
 }
 impl<B: Base> cmp::Ord for RelativePtr<B> {
+	#[inline(always)]
 	fn cmp(&self, other: &Self) -> cmp::Ordering {
 		self.0.cmp(&other.0)
 	}
@@ -76,20 +81,22 @@ impl<'de, B: Base> serde::de::Deserialize<'de> for RelativePtr<B> {
 pub trait Base {
 	fn base() -> usize;
 }
+
 pub struct Text<T: ?Sized>(marker::PhantomData<fn(T)>); // +'static
 impl<T: ?Sized> Text<T> {
 	#[used]
 	#[inline(never)]
-	fn abc() -> ! {
+	fn abc(_: &T) {
 		unsafe { intrinsics::unreachable() };
 	}
 }
 impl<T: ?Sized> Base for Text<T> {
 	#[inline(always)]
 	fn base() -> usize {
-		<Text<T>>::abc as *const fn() -> usize as usize
+		<Text<T>>::abc as fn(&T) as usize
 	}
 }
+
 pub struct Data;
 impl Base for Data {
 	#[inline(always)]
@@ -99,3 +106,22 @@ impl Base for Data {
 }
 #[used]
 static DATA_BASE: () = ();
+
+struct Vtable<T: ?Sized>(marker::PhantomData<fn(T)>);
+impl<T: ?Sized> Vtable<T> {
+	#[used]
+	#[inline(never)]
+	fn abc(_: &T) {
+		unsafe { intrinsics::unreachable() };
+	}
+}
+impl<T: ?Sized> Base for Vtable<T> {
+	#[inline(always)]
+	fn base() -> usize {
+		unsafe {
+			mem::transmute::<*const Fn(&T), raw::TraitObject>(
+				&(<Vtable<T>>::abc as fn(&T)) as &Fn(&T),
+			)
+		}.vtable as usize
+	}
+}

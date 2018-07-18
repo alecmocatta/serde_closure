@@ -16,7 +16,7 @@ install:
 build: false
 
 test_script:
-- cargo build --verbose --target %TARGET%
-- cargo build --verbose --target %TARGET% --release
-- cargo test --target %TARGET%
-- cargo test --target %TARGET% --release
+- cargo build --verbose --target %TARGET% --lib --tests
+- cargo build --verbose --target %TARGET% --lib --tests --release
+- set RUST_BACKTRACE=full && cargo test --target %TARGET%
+- set RUST_BACKTRACE=full && cargo test --target %TARGET% --release
