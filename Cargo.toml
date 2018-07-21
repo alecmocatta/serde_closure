@@ -1,6 +1,6 @@
 [package]
 name = "serde_closure"
-version = "0.1.0"
+version = "0.1.1"
 license = "Apache-2.0"
 authors = ["Alec Mocatta <alec@mocatta.net>"]
 categories = ["development-tools","encoding","rust-patterns","network-programming"]
@@ -12,7 +12,7 @@ This library provides macros to wrap closures such that they can serialised and 
 """
 repository = "https://github.com/alecmocatta/serde_closure"
 homepage = "https://github.com/alecmocatta/serde_closure"
-documentation = "https://docs.rs/serde_closure/0.1.0"
+documentation = "https://docs.rs/serde_closure/0.1.1"
 readme = "README.md"
 
 [badges]

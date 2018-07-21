@@ -191,7 +191,7 @@
 //! longer be used (i.e. `|&a:&i32|0` will not work).
 //!  * The `move` keyword must be present if any variables are captured.
 
-#![doc(html_root_url = "https://docs.rs/serde_closure/0.1.0")]
+#![doc(html_root_url = "https://docs.rs/serde_closure/0.1.1")]
 #![feature(
 	unboxed_closures,
 	fn_traits,
