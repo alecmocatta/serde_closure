@@ -50,12 +50,12 @@ script: |
   ( set -o errexit;set -o pipefail; set -o xtrace;set -o nounset;
     cargo +$FMT_VERSION fmt -- --check
     for TARGET in $BUILD $RUN; do (
-      [ \( "$TRAVIS_OS_NAME" = "osx" -o \( "$TRAVIS_OS_NAME" = "linux" -a "${DIST-}" = "precise" \) \) -a \( "$TARGET" = "x86_64-unknown-linux-musl" -o "$TARGET" = "i686-unknown-linux-musl" \) ] && exit 0 # export RUSTFLAGS=-Zlinker-flavor=ld.lld temporarily disable till this is fixed: https://github.com/rust-lang/rust/issues/52501
+      [ \( "$TRAVIS_OS_NAME" = "osx" -o \( "$TRAVIS_OS_NAME" = "linux" -a "${DIST-}" = "precise" \) \) -a \( "$TARGET" = "x86_64-unknown-linux-musl" -o "$TARGET" = "i686-unknown-linux-musl" \) ] && exit 0 # export RUSTFLAGS="-C linker=rust-lld -Z linker-flavor=ld.lld"
       cargo build --verbose --target "$TARGET" --lib --tests
       cargo build --verbose --target "$TARGET" --lib --tests --release
     ); done
     for TARGET in $RUN; do (
-      [ \( "$TRAVIS_OS_NAME" = "osx" -o \( "$TRAVIS_OS_NAME" = "linux" -a "${DIST-}" = "precise" \) \) -a \( "$TARGET" = "x86_64-unknown-linux-musl" -o "$TARGET" = "i686-unknown-linux-musl" \) ] && exit 0 # export RUSTFLAGS=-Zlinker-flavor=ld.lld temporarily disable till this is fixed: https://github.com/rust-lang/rust/issues/52501
+      [ \( "$TRAVIS_OS_NAME" = "osx" -o \( "$TRAVIS_OS_NAME" = "linux" -a "${DIST-}" = "precise" \) \) -a \( "$TARGET" = "x86_64-unknown-linux-musl" -o "$TARGET" = "i686-unknown-linux-musl" \) ] && exit 0 # export RUSTFLAGS="-C linker=rust-lld -Z linker-flavor=ld.lld"
       RUST_BACKTRACE=full cargo test --target "$TARGET"
       RUST_BACKTRACE=full cargo test --target "$TARGET" --release
     ); done
