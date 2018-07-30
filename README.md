@@ -6,7 +6,7 @@
 [![Build Status](https://circleci.com/gh/alecmocatta/serde_closure/tree/master.svg?style=shield)](https://circleci.com/gh/alecmocatta/serde_closure)
 [![Build Status](https://travis-ci.com/alecmocatta/serde_closure.svg?branch=master)](https://travis-ci.com/alecmocatta/serde_closure)
 
-[Docs](https://docs.rs/serde_closure/0.1.1)
+[Docs](https://docs.rs/serde_closure/0.1.2)
 
 Serializable closures.
 
@@ -29,9 +29,9 @@ currently requires nightly Rust for the `unboxed_closures` and `fn_traits`
 features (rust issue [#29625](https://github.com/rust-lang/rust/issues/29625)).
 
  * There are three macros,
- [FnOnce](https://docs.rs/serde_closure/0.1.1/serde_closure/macro.FnOnce.html),
- [FnMut](https://docs.rs/serde_closure/0.1.1/serde_closure/macro.FnMut.html) and
- [Fn](https://docs.rs/serde_closure/0.1.1/serde_closure/macro.Fn.html),
+ [FnOnce](https://docs.rs/serde_closure/0.1.2/serde_closure/macro.FnOnce.html),
+ [FnMut](https://docs.rs/serde_closure/0.1.2/serde_closure/macro.FnMut.html) and
+ [Fn](https://docs.rs/serde_closure/0.1.2/serde_closure/macro.Fn.html),
  corresponding to the three types of Rust closure.
  * The *captured variables*, i.e. those variables that are referenced by the
  closure but are declared outside of it, must be explicitly listed.
