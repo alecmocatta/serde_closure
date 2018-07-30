@@ -6,9 +6,9 @@ authors = ["Alec Mocatta <alec@mocatta.net>"]
 categories = ["development-tools","encoding","rust-patterns","network-programming"]
 keywords = ["closure","serialization","serde","distributed"]
 description = """
-Serialisable closures.
+Serializable closures.
 
-This library provides macros to wrap closures such that they can serialised and sent between other processes running the same binary.
+This library provides macros to wrap closures such that they can serialized and sent between other processes running the same binary.
 """
 repository = "https://github.com/alecmocatta/serde_closure"
 homepage = "https://github.com/alecmocatta/serde_closure"
