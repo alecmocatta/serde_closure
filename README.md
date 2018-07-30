@@ -8,9 +8,9 @@
 
 [Docs](https://docs.rs/serde_closure/0.1.1)
 
-Serialisable closures.
+Serializable closures.
 
-This library provides macros to wrap closures such that they can serialised and
+This library provides macros to wrap closures such that they can serialized and
 sent between other processes running the same binary.
 
 ```rust

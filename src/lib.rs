@@ -1,10 +1,10 @@
-//! Serialisable closures.
+//! Serializable closures.
 //!
 //! **[Crates.io](https://crates.io/crates/serde_closure) │
 //! [Repo](https://github.com/alecmocatta/serde_closure)**
 //!
-//! This library provides macros to wrap closures such that they can serialised
-//! and sent between other processes running the same binary.
+//! This library provides macros to wrap closures such that they can be
+//! serialized and sent between other processes running the same binary.
 //!
 //! ```
 //! # #![feature(never_type)]
@@ -196,7 +196,6 @@
 	unboxed_closures,
 	fn_traits,
 	core_intrinsics,
-	macro_at_most_once_rep,
 	allow_internal_unstable,
 	used,
 	raw
@@ -216,7 +215,7 @@ extern crate serde_json;
 use relative::{Code, Pointer};
 use std::{cmp, fmt, hash, intrinsics, marker, mem, ops};
 
-/// A struct representing a serialisable closure, created by the
+/// A struct representing a serializable closure, created by the
 /// [FnOnce](macro@FnOnce) macro. Implements [std::ops::FnOnce], serde's
 /// [Serialize](serde::ser::Serialize) and
 /// [Deserialize](serde::de::DeserializeOwned), and various convenience traits.
@@ -325,7 +324,7 @@ where
 	}
 }
 
-/// A struct representing a serialisable closure, created by the
+/// A struct representing a serializable closure, created by the
 /// [FnMut](macro@FnMut) macro. Implements [std::ops::FnMut], serde's
 /// [Serialize](serde::ser::Serialize) and
 /// [Deserialize](serde::de::DeserializeOwned), and various convenience traits.
@@ -447,7 +446,7 @@ where
 	}
 }
 
-/// A struct representing a serialisable closure, created by the [Fn](macro@Fn)
+/// A struct representing a serializable closure, created by the [Fn](macro@Fn)
 /// macro. Implements [std::ops::Fn], serde's [Serialize](serde::ser::Serialize)
 /// and [Deserialize](serde::de::DeserializeOwned), and various convenience
 /// traits.
@@ -610,63 +609,63 @@ macro_rules! FnOnce {
 		)
 	});
 	// arg out
-	($([$( $env:ident ),* ])? move | $( $arg:ident : $ty:ty ),* | -> $o:ty $block:block) => ({
-		FnOnce!(@abc ($($($env,)*)?) ($($arg => $ty,)*) $o $block )
+	($([$( $env:ident ),* ])* move | $( $arg:ident : $ty:ty ),* | -> $o:ty $block:block) => ({
+		FnOnce!(@abc ($($($env,)*)*) ($($arg => $ty,)*) $o $block )
 	});
-	($([$( $env:ident ),* ])? move | $( $arg:pat => $ty:ty ),* | -> $o:ty $block:block) => ({
-		FnOnce!(@abc ($($($env,)*)?) ($($arg => $ty,)*) $o $block )
+	($([$( $env:ident ),* ])* move | $( $arg:pat => $ty:ty ),* | -> $o:ty $block:block) => ({
+		FnOnce!(@abc ($($($env,)*)*) ($($arg => $ty,)*) $o $block )
 	});
 	// !arg out
-	($([$( $env:ident ),* ])? move || -> $o:ty $block:block) => ({
-		FnOnce!(@abc ($($($env,)*)?) () $o $block )
+	($([$( $env:ident ),* ])* move || -> $o:ty $block:block) => ({
+		FnOnce!(@abc ($($($env,)*)*) () $o $block )
 	});
 	// arg !out
-	($([$( $env:ident ),* ])? move | $( $arg:ident : $ty:ty ),* | $block:expr) => ({
-		FnOnce!(@abc ($($($env,)*)?) ($($arg => $ty,)*) _ { $block } )
+	($([$( $env:ident ),* ])* move | $( $arg:ident : $ty:ty ),* | $block:expr) => ({
+		FnOnce!(@abc ($($($env,)*)*) ($($arg => $ty,)*) _ { $block } )
 	});
-	($([$( $env:ident ),* ])? move | $( $arg:pat => $ty:ty ),* | $block:expr) => ({
-		FnOnce!(@abc ($($($env,)*)?) ($($arg => $ty,)*) _ { $block } )
+	($([$( $env:ident ),* ])* move | $( $arg:pat => $ty:ty ),* | $block:expr) => ({
+		FnOnce!(@abc ($($($env,)*)*) ($($arg => $ty,)*) _ { $block } )
 	});
 	// !arg !out
-	($([$( $env:ident ),* ])? move || $block:expr) => ({
-		FnOnce!(@abc ($($($env,)*)?) () _ { $block } )
+	($([$( $env:ident ),* ])* move || $block:expr) => ({
+		FnOnce!(@abc ($($($env,)*)*) () _ { $block } )
 	});
 	// $arg out
-	($([$( $env:ident ),* ])? move | $( $arg:pat ),* | -> $o:ty $block:block) => ({
-		FnOnce!(@abc ($($($env,)*)?) ($($arg => _,)*) $o $block )
+	($([$( $env:ident ),* ])* move | $( $arg:pat ),* | -> $o:ty $block:block) => ({
+		FnOnce!(@abc ($($($env,)*)*) ($($arg => _,)*) $o $block )
 	});
 	// $arg !out
-	($([$( $env:ident ),* ])? move | $( $arg:pat ),* | $block:expr) => ({
-		FnOnce!(@abc ($($($env,)*)?) ($($arg => _,)*) _ { $block } )
+	($([$( $env:ident ),* ])* move | $( $arg:pat ),* | $block:expr) => ({
+		FnOnce!(@abc ($($($env,)*)*) ($($arg => _,)*) _ { $block } )
 	});
 	// arg out
-	($([])? | $( $arg:ident : $ty:ty ),* | -> $o:ty $block:block) => ({
+	($([])* | $( $arg:ident : $ty:ty ),* | -> $o:ty $block:block) => ({
 		FnOnce!(@abc () ($($arg => $ty,)*) $o $block )
 	});
-	($([])? | $( $arg:pat => $ty:ty ),* | -> $o:ty $block:block) => ({
+	($([])* | $( $arg:pat => $ty:ty ),* | -> $o:ty $block:block) => ({
 		FnOnce!(@abc () ($($arg => $ty,)*) $o $block )
 	});
 	// !arg out
-	($([])? || -> $o:ty $block:block) => ({
+	($([])* || -> $o:ty $block:block) => ({
 		FnOnce!(@abc () () -> $o $block )
 	});
 	// arg !out
-	($([])? | $( $arg:ident : $ty:ty ),* | $block:expr) => ({
+	($([])* | $( $arg:ident : $ty:ty ),* | $block:expr) => ({
 		FnOnce!(@abc () ($($arg => $ty,)*) _ { $block } )
 	});
-	($([])? | $( $arg:pat => $ty:ty ),* | $block:expr) => ({
+	($([])* | $( $arg:pat => $ty:ty ),* | $block:expr) => ({
 		FnOnce!(@abc () ($($arg => $ty,)*) _ { $block } )
 	});
 	// !arg !out
-	($([])? || $block:expr) => ({
+	($([])* || $block:expr) => ({
 		FnOnce!(@abc () () _ { $block } )
 	});
 	// $arg out
-	($([])? | $( $arg:pat ),* | -> $o:ty $block:block) => ({
+	($([])* | $( $arg:pat ),* | -> $o:ty $block:block) => ({
 		FnOnce!(@abc () ($($arg => _,)*) $o $block )
 	});
 	// $arg !out
-	($([])? | $( $arg:pat ),* | $block:expr) => ({
+	($([])* | $( $arg:pat ),* | $block:expr) => ({
 		FnOnce!(@abc () ($($arg => _,)*) _ { $block } )
 	});
 }
@@ -698,63 +697,63 @@ macro_rules! FnMut {
 		)
 	});
 	// arg out
-	($([$( $env:ident ),* ])? move | $( $arg:ident : $ty:ty ),* | -> $o:ty $block:block) => ({
-		FnMut!(@abc ($($($env,)*)?) ($($arg => $ty,)*) $o $block )
+	($([$( $env:ident ),* ])* move | $( $arg:ident : $ty:ty ),* | -> $o:ty $block:block) => ({
+		FnMut!(@abc ($($($env,)*)*) ($($arg => $ty,)*) $o $block )
 	});
-	($([$( $env:ident ),* ])? move | $( $arg:pat => $ty:ty ),* | -> $o:ty $block:block) => ({
-		FnMut!(@abc ($($($env,)*)?) ($($arg => $ty,)*) $o $block )
+	($([$( $env:ident ),* ])* move | $( $arg:pat => $ty:ty ),* | -> $o:ty $block:block) => ({
+		FnMut!(@abc ($($($env,)*)*) ($($arg => $ty,)*) $o $block )
 	});
 	// !arg out
-	($([$( $env:ident ),* ])? move || -> $o:ty $block:block) => ({
-		FnMut!(@abc ($($($env,)*)?) () $o $block )
+	($([$( $env:ident ),* ])* move || -> $o:ty $block:block) => ({
+		FnMut!(@abc ($($($env,)*)*) () $o $block )
 	});
 	// arg !out
-	($([$( $env:ident ),* ])? move | $( $arg:ident : $ty:ty ),* | $block:expr) => ({
-		FnMut!(@abc ($($($env,)*)?) ($($arg => $ty,)*) _ { $block } )
+	($([$( $env:ident ),* ])* move | $( $arg:ident : $ty:ty ),* | $block:expr) => ({
+		FnMut!(@abc ($($($env,)*)*) ($($arg => $ty,)*) _ { $block } )
 	});
-	($([$( $env:ident ),* ])? move | $( $arg:pat => $ty:ty ),* | $block:expr) => ({
-		FnMut!(@abc ($($($env,)*)?) ($($arg => $ty,)*) _ { $block } )
+	($([$( $env:ident ),* ])* move | $( $arg:pat => $ty:ty ),* | $block:expr) => ({
+		FnMut!(@abc ($($($env,)*)*) ($($arg => $ty,)*) _ { $block } )
 	});
 	// !arg !out
-	($([$( $env:ident ),* ])? move || $block:expr) => ({
-		FnMut!(@abc ($($($env,)*)?) () _ { $block } )
+	($([$( $env:ident ),* ])* move || $block:expr) => ({
+		FnMut!(@abc ($($($env,)*)*) () _ { $block } )
 	});
 	// $arg out
-	($([$( $env:ident ),* ])? move | $( $arg:pat ),* | -> $o:ty $block:block) => ({
-		FnMut!(@abc ($($($env,)*)?) ($($arg => _,)*) $o $block )
+	($([$( $env:ident ),* ])* move | $( $arg:pat ),* | -> $o:ty $block:block) => ({
+		FnMut!(@abc ($($($env,)*)*) ($($arg => _,)*) $o $block )
 	});
 	// $arg !out
-	($([$( $env:ident ),* ])? move | $( $arg:pat ),* | $block:expr) => ({
-		FnMut!(@abc ($($($env,)*)?) ($($arg => _,)*) _ { $block } )
+	($([$( $env:ident ),* ])* move | $( $arg:pat ),* | $block:expr) => ({
+		FnMut!(@abc ($($($env,)*)*) ($($arg => _,)*) _ { $block } )
 	});
 	// arg out
-	($([])? | $( $arg:ident : $ty:ty ),* | -> $o:ty $block:block) => ({
+	($([])* | $( $arg:ident : $ty:ty ),* | -> $o:ty $block:block) => ({
 		FnMut!(@abc () ($($arg => $ty,)*) $o $block )
 	});
-	($([])? | $( $arg:pat => $ty:ty ),* | -> $o:ty $block:block) => ({
+	($([])* | $( $arg:pat => $ty:ty ),* | -> $o:ty $block:block) => ({
 		FnMut!(@abc () ($($arg => $ty,)*) $o $block )
 	});
 	// !arg out
-	($([])? || -> $o:ty $block:block) => ({
+	($([])* || -> $o:ty $block:block) => ({
 		FnMut!(@abc () () -> $o $block )
 	});
 	// arg !out
-	($([])? | $( $arg:ident : $ty:ty ),* | $block:expr) => ({
+	($([])* | $( $arg:ident : $ty:ty ),* | $block:expr) => ({
 		FnMut!(@abc () ($($arg => $ty,)*) _ { $block } )
 	});
-	($([])? | $( $arg:pat => $ty:ty ),* | $block:expr) => ({
+	($([])* | $( $arg:pat => $ty:ty ),* | $block:expr) => ({
 		FnMut!(@abc () ($($arg => $ty,)*) _ { $block } )
 	});
 	// !arg !out
-	($([])? || $block:expr) => ({
+	($([])* || $block:expr) => ({
 		FnMut!(@abc () () _ { $block } )
 	});
 	// $arg out
-	($([])? | $( $arg:pat ),* | -> $o:ty $block:block) => ({
+	($([])* | $( $arg:pat ),* | -> $o:ty $block:block) => ({
 		FnMut!(@abc () ($($arg => _,)*) $o $block )
 	});
 	// $arg !out
-	($([])? | $( $arg:pat ),* | $block:expr) => ({
+	($([])* | $( $arg:pat ),* | $block:expr) => ({
 		FnMut!(@abc () ($($arg => _,)*) _ { $block } )
 	});
 }
@@ -785,63 +784,63 @@ macro_rules! Fn {
 		)
 	});
 	// arg out
-	($([$( $env:ident ),* ])? move | $( $arg:ident : $ty:ty ),* | -> $o:ty $block:block) => ({
-		Fn!(@abc ($($($env,)*)?) ($($arg => $ty,)*) $o $block )
+	($([$( $env:ident ),* ])* move | $( $arg:ident : $ty:ty ),* | -> $o:ty $block:block) => ({
+		Fn!(@abc ($($($env,)*)*) ($($arg => $ty,)*) $o $block )
 	});
-	($([$( $env:ident ),* ])? move | $( $arg:pat => $ty:ty ),* | -> $o:ty $block:block) => ({
-		Fn!(@abc ($($($env,)*)?) ($($arg => $ty,)*) $o $block )
+	($([$( $env:ident ),* ])* move | $( $arg:pat => $ty:ty ),* | -> $o:ty $block:block) => ({
+		Fn!(@abc ($($($env,)*)*) ($($arg => $ty,)*) $o $block )
 	});
 	// !arg out
-	($([$( $env:ident ),* ])? move || -> $o:ty $block:block) => ({
-		Fn!(@abc ($($($env,)*)?) () $o $block )
+	($([$( $env:ident ),* ])* move || -> $o:ty $block:block) => ({
+		Fn!(@abc ($($($env,)*)*) () $o $block )
 	});
 	// arg !out
-	($([$( $env:ident ),* ])? move | $( $arg:ident : $ty:ty ),* | $block:expr) => ({
-		Fn!(@abc ($($($env,)*)?) ($($arg => $ty,)*) _ { $block } )
+	($([$( $env:ident ),* ])* move | $( $arg:ident : $ty:ty ),* | $block:expr) => ({
+		Fn!(@abc ($($($env,)*)*) ($($arg => $ty,)*) _ { $block } )
 	});
-	($([$( $env:ident ),* ])? move | $( $arg:pat => $ty:ty ),* | $block:expr) => ({
-		Fn!(@abc ($($($env,)*)?) ($($arg => $ty,)*) _ { $block } )
+	($([$( $env:ident ),* ])* move | $( $arg:pat => $ty:ty ),* | $block:expr) => ({
+		Fn!(@abc ($($($env,)*)*) ($($arg => $ty,)*) _ { $block } )
 	});
 	// !arg !out
-	($([$( $env:ident ),* ])? move || $block:expr) => ({
-		Fn!(@abc ($($($env,)*)?) () _ { $block } )
+	($([$( $env:ident ),* ])* move || $block:expr) => ({
+		Fn!(@abc ($($($env,)*)*) () _ { $block } )
 	});
 	// $arg out
-	($([$( $env:ident ),* ])? move | $( $arg:pat ),* | -> $o:ty $block:block) => ({
-		Fn!(@abc ($($($env,)*)?) ($($arg => _,)*) $o $block )
+	($([$( $env:ident ),* ])* move | $( $arg:pat ),* | -> $o:ty $block:block) => ({
+		Fn!(@abc ($($($env,)*)*) ($($arg => _,)*) $o $block )
 	});
 	// $arg !out
-	($([$( $env:ident ),* ])? move | $( $arg:pat ),* | $block:expr) => ({
-		Fn!(@abc ($($($env,)*)?) ($($arg => _,)*) _ { $block } )
+	($([$( $env:ident ),* ])* move | $( $arg:pat ),* | $block:expr) => ({
+		Fn!(@abc ($($($env,)*)*) ($($arg => _,)*) _ { $block } )
 	});
 	// arg out
-	($([])? | $( $arg:ident : $ty:ty ),* | -> $o:ty $block:block) => ({
+	($([])* | $( $arg:ident : $ty:ty ),* | -> $o:ty $block:block) => ({
 		Fn!(@abc () ($($arg => $ty,)*) $o $block )
 	});
-	($([])? | $( $arg:pat => $ty:ty ),* | -> $o:ty $block:block) => ({
+	($([])* | $( $arg:pat => $ty:ty ),* | -> $o:ty $block:block) => ({
 		Fn!(@abc () ($($arg => $ty,)*) $o $block )
 	});
 	// !arg out
-	($([])? || -> $o:ty $block:block) => ({
+	($([])* || -> $o:ty $block:block) => ({
 		Fn!(@abc () () -> $o $block )
 	});
 	// arg !out
-	($([])? | $( $arg:ident : $ty:ty ),* | $block:expr) => ({
+	($([])* | $( $arg:ident : $ty:ty ),* | $block:expr) => ({
 		Fn!(@abc () ($($arg => $ty,)*) _ { $block } )
 	});
-	($([])? | $( $arg:pat => $ty:ty ),* | $block:expr) => ({
+	($([])* | $( $arg:pat => $ty:ty ),* | $block:expr) => ({
 		Fn!(@abc () ($($arg => $ty,)*) _ { $block } )
 	});
 	// !arg !out
-	($([])? || $block:expr) => ({
+	($([])* || $block:expr) => ({
 		Fn!(@abc () () _ { $block } )
 	});
 	// $arg out
-	($([])? | $( $arg:pat ),* | -> $o:ty $block:block) => ({
+	($([])* | $( $arg:pat ),* | -> $o:ty $block:block) => ({
 		Fn!(@abc () ($($arg => _,)*) $o $block )
 	});
 	// $arg !out
-	($([])? | $( $arg:pat ),* | $block:expr) => ({
+	($([])* | $( $arg:pat ),* | $block:expr) => ({
 		Fn!(@abc () ($($arg => _,)*) _ { $block } )
 	});
 }
@@ -869,12 +868,12 @@ mod tests {
 		>(
 			f: F,
 		) {
-			let deserialised: F =
+			let deserialized: F =
 				serde_json::from_str(&serde_json::to_string(&f).unwrap()).unwrap();
-			let deserialised2: F = bincode::deserialize(&bincode::serialize(&f).unwrap()).unwrap();
-			assert_eq!(f, deserialised);
-			assert_eq!(deserialised, deserialised2);
-			assert_eq!(f, deserialised2);
+			let deserialized2: F = bincode::deserialize(&bincode::serialize(&f).unwrap()).unwrap();
+			assert_eq!(f, deserialized);
+			assert_eq!(deserialized, deserialized2);
+			assert_eq!(f, deserialized2);
 			let test = |f: F| {
 				let mut a = 3;
 				let mut b = String::from("ghi");
@@ -917,8 +916,8 @@ mod tests {
 				);
 			};
 			test(f);
-			test(deserialised);
-			test(deserialised2);
+			test(deserialized);
+			test(deserialized2);
 		}
 		let (a, b) = (3usize, String::from("qwerty"));
 		let a = FnOnce!([a,b] move |c:_,d:&_,e:&mut _,f:String,g:&String,h:&mut String| -> String {
@@ -953,13 +952,13 @@ mod tests {
 		>(
 			mut f: F,
 		) {
-			let mut deserialised: F =
+			let mut deserialized: F =
 				serde_json::from_str(&serde_json::to_string(&f).unwrap()).unwrap();
-			let mut deserialised2: F =
+			let mut deserialized2: F =
 				bincode::deserialize(&bincode::serialize(&f).unwrap()).unwrap();
-			assert_eq!(f, deserialised);
-			assert_eq!(deserialised, deserialised2);
-			assert_eq!(f, deserialised2);
+			assert_eq!(f, deserialized);
+			assert_eq!(deserialized, deserialized2);
+			assert_eq!(f, deserialized2);
 			let test = |f: &mut F| {
 				let mut a = 3;
 				let mut b = String::from("ghi");
@@ -982,11 +981,11 @@ mod tests {
 				assert_eq!(f(7, &8, &mut a, String::from("stu"), &String::from("vwx"), &mut b), "156qwertyghiqwertyabcdefghiqwertyabcdefpqrqwertyghiqwertyabcdefjklmnoghiqwertyabcdefpqrqwertyghiqwertyabcdefjklmnoyzqwertyghiqwertyabcdefghiqwertyabcdefpqrqwertyghiqwertyabcdefjklmnostuvwx78108stuvwxghiqwertyabcdefpqrqwertyghiqwertyabcdefjklmnoyzqwertyghiqwertyabcdefghiqwertyabcdefpqrqwertyghiqwertyabcdefjklmnostuvwx");
 			};
 			test(&mut f);
-			test(&mut deserialised);
-			test(&mut deserialised2);
-			assert_eq!(f, deserialised);
-			assert_eq!(deserialised, deserialised2);
-			assert_eq!(f, deserialised2);
+			test(&mut deserialized);
+			test(&mut deserialized2);
+			assert_eq!(f, deserialized);
+			assert_eq!(deserialized, deserialized2);
+			assert_eq!(f, deserialized2);
 		}
 		let (a, b) = (3usize, String::from("qwerty"));
 		let a = FnMut!([a,b] move |c:_,d:&_,e:&mut _,f:String,g:&String,h:&mut String| -> String {
@@ -1031,13 +1030,13 @@ mod tests {
 		>(
 			mut f: F,
 		) {
-			let mut deserialised: F =
+			let mut deserialized: F =
 				serde_json::from_str(&serde_json::to_string(&f).unwrap()).unwrap();
-			let mut deserialised2: F =
+			let mut deserialized2: F =
 				bincode::deserialize(&bincode::serialize(&f).unwrap()).unwrap();
-			assert_eq!(f, deserialised);
-			assert_eq!(deserialised, deserialised2);
-			assert_eq!(f, deserialised2);
+			assert_eq!(f, deserialized);
+			assert_eq!(deserialized, deserialized2);
+			assert_eq!(f, deserialized2);
 			let test = |f: &mut F| {
 				let mut a = 3;
 				let mut b = String::from("ghi");
@@ -1080,11 +1079,11 @@ mod tests {
 				);
 			};
 			test(&mut f);
-			test(&mut deserialised);
-			test(&mut deserialised2);
-			assert_eq!(f, deserialised);
-			assert_eq!(deserialised, deserialised2);
-			assert_eq!(f, deserialised2);
+			test(&mut deserialized);
+			test(&mut deserialized2);
+			assert_eq!(f, deserialized);
+			assert_eq!(deserialized, deserialized2);
+			assert_eq!(f, deserialized2);
 		}
 		let (a, b) = (3usize, String::from("qwerty"));
 		let a = Fn!([a,b] move |c:_,d:&_,e:&mut _,f:String,g:&String,h:&mut String| -> String {
