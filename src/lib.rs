@@ -192,14 +192,7 @@
 //!  * The `move` keyword must be present if any variables are captured.
 
 #![doc(html_root_url = "https://docs.rs/serde_closure/0.1.1")]
-#![feature(
-	unboxed_closures,
-	fn_traits,
-	core_intrinsics,
-	allow_internal_unstable,
-	used,
-	raw
-)]
+#![feature(unboxed_closures, fn_traits, core_intrinsics)]
 #![deny(missing_docs, warnings, deprecated)]
 #![allow(intra_doc_link_resolution_failure)]
 
@@ -588,7 +581,6 @@ where
 ///
 /// See the [readme](self) for examples.
 #[macro_export]
-#[allow_internal_unstable]
 macro_rules! FnOnce {
 	(@abc ( $( $env:ident ,)* ) ( $( $arg:pat => $ty:ty ,)* ) $o:ty $block:block) => ({
 		let env = ($($env,)*);
@@ -676,7 +668,6 @@ macro_rules! FnOnce {
 ///
 /// See the [readme](self) for examples.
 #[macro_export]
-#[allow_internal_unstable]
 macro_rules! FnMut {
 	(@abc ( $( $env:ident ,)* ) ( $( $arg:pat => $ty:ty ,)* ) $o:ty $block:block) => ({
 		let mut env = ($($env,)*);
@@ -763,7 +754,6 @@ macro_rules! FnMut {
 ///
 /// See the [readme](self) for examples.
 #[macro_export]
-#[allow_internal_unstable]
 macro_rules! Fn {
 	(@abc ( $( $env:ident ,)* ) ( $( $arg:pat => $ty:ty ,)* ) $o:ty $block:block) => ({
 		let env = ($($env,)*);
