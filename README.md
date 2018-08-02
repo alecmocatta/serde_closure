@@ -21,8 +21,9 @@ fn sum_of_squares(input: &[i32]) -> i32 {
 }
 ```
 
-For example, if you have the same binary running on each of a cluster of
-machines, this library would help you to send closures between them.
+For example, if you have multiple forks of a process, or the same binary running
+on each of a cluster of machines, this library would help you to send closures
+between them.
 
 This library aims to work in as simple and un-magical a way as possible. It
 currently requires nightly Rust for the `unboxed_closures` and `fn_traits`
@@ -49,6 +50,7 @@ features (rust issue [#29625](https://github.com/rust-lang/rust/issues/29625)).
 ```rust
 FnMut!(|a| a+1)
 ```
+
 **Annotated, non-capturing closure:**
 ```rust
 |a: String| -> String { a.to_uppercase() }
@@ -56,70 +58,48 @@ FnMut!(|a| a+1)
 ```rust
 FnMut!(|a: String| -> String { a.to_uppercase() })
 ```
+
 **Inferred closure, capturing `num`:**
 ```rust
 let mut num = 0;
-move |a| num += a
+|a| num += a
 ```
 ```rust
 let mut num = 0;
-FnMut!([num] move |a| *num += a)
+FnMut!([num] |a| *num += a)
 ```
-Note: If any variables are captured then the `move` keyword must be present. As
-this is a FnMut closure, `num` is a mutable reference, and must be dereferenced
-to use.
+Note: As this is a FnMut closure, `num` is a mutable reference, and must be
+dereferenced to use.
 
-**Capturing `hello` requiring extra annotation:**
+**`move` closure, capturing `hello` and `world`:**
 ```rust
-let mut hello = String::new();
-move |a| {
-	hello = hello.to_uppercase() + a;
-	hello.clone()
+let hello = String::from("hello");
+let mut world = String::new();
+move |name| {
+	world += (hello.to_uppercase() + name).as_str();
 }
 ```
 ```rust
-let mut hello = String::new();
-FnMut!([hello] move |a| {
-	let hello: &mut String = hello;
-	*hello = hello.to_uppercase() + a;
-	hello.clone()
+let hello = String::from("hello");
+let mut world = String::new();
+FnMut!([hello,world] move |name| {
+	*world += (hello.to_uppercase() + name).as_str();
 })
 ```
-Note: `hello` needs its type annotated in the closure.
-
-**Complex closure, capturing `a` and `b`:**
-```rust
-let (mut a, mut b) = (1usize, String::from("foo"));
-move |c, d: &_, e: &mut _, f: String, g: &String, h: &mut String| {
-	*e += a + c + *d;
-	a += *e;
-	*h += (b.clone() + f.as_str() + g.as_str()).as_str();
-	b += h.as_str();
-}
-```
-```rust
-let (mut a, mut b) = (1usize, String::from("foo"));
-FnMut!([a,b] move |c:_, d: &_, e: &mut _, f: String, g: &String, h: &mut String| {
-	let b: &mut String = b;
-	*e += *a + c + *d;
-	*a += *e;
-	*h += ((b.clone() + f.as_str() + g.as_str())).as_str();
-	*b += h.as_str();
-})
-```
+Note: `world` must be dereferenced to use.
 
 ## Cosmetic limitations
-As visible above, there are currently some limitations that often necessitate
-extra annotation that you might typically expect to be redundant.
- * Type inference doesn't work as well as normal, hence extra type annotations
- might be needed;
- * The captured variables in FnMut and Fn closures are references, so need to be
- dereferenced;
- * Types cannot be annotated in the list of captured variables;
- * If any of the closure arguments are annotated with types (i.e. `|a:i32|0`)
- then all must be (though `_` can be used), and patterns can no longer be used
- (i.e. `|&a:&i32|0` will not work).
- * The `move` keyword must be present if any variables are captured.
+As visible above, there are currently some minor limitations:
+ * The captured variables in FnMut and Fn closures are references, so need
+to be dereferenced;
+ * Compiler errors are not as helpful as normal:
+```text
+error[E0308]: mismatched types
+...
+   = note: expected type `for<..> fn(&'r mut (..), (..))`
+              found type `[closure@<FnMut macros>:9:9: 10:44 my_var:_]`
+```
+means that `my_var` is a captured variable, but was not explicitly listed.
 
 ## License
 Licensed under Apache License, Version 2.0, ([LICENSE.txt](LICENSE.txt) or

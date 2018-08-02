@@ -12,8 +12,8 @@ addons:
 
 env:
   global:
-    - FMT_VERSION=nightly-2018-07-17
-    - CLIPPY_VERSION=nightly-2018-07-17
+    - FMT_VERSION=nightly-2018-07-30
+    - CLIPPY_VERSION=nightly-2018-07-30
     - DOCS_RS_VERSION=nightly-2018-06-03 # https://github.com/onur/docs.rs/blob/32102ce458b34f750ef190182116d9583491a64b/Vagrantfile#L50
 
 matrix:
@@ -52,7 +52,7 @@ before_script: |
 script: |
   ( set -o errexit;set -o pipefail; set -o xtrace;set -o nounset;
     cargo +$FMT_VERSION fmt -- --check
-    cargo +$CLIPPY_VERSION clippy -- -D warnings
+    cargo +$CLIPPY_VERSION clippy --lib --tests -- -D warnings
     OLD_IFS=$IFS IFS=";"; for RUSTFLAGS in $RUSTFLAGS_VARIATIONS; do ( IFS=$OLD_IFS
       export RUSTFLAGS
       for TARGET in $BUILD $RUN; do (
