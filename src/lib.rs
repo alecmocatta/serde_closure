@@ -53,7 +53,7 @@
 //! # }
 //! # struct Map<I,F>(I,F);
 //! # impl<I,F> DistributedIterator for Map<I,F> where I: DistributedIterator {
-//! #     type Item = I::Item;
+//! # 	type Item = I::Item;
 //! # }
 //! fn sum_of_squares(input: &[i32]) -> i32 {
 //! 	input.dist_iter()
@@ -62,8 +62,9 @@
 //! }
 //! ```
 //!
-//! For example, if you have the same binary running on each of a cluster of
-//! machines, this library would help you to send closures between them.
+//! For example, if you have multiple forks of a process, or the same binary
+//! running on each of a cluster of machines, this library would help you to
+//! send closures between them.
 //!
 //! This library aims to work in as simple and un-magical a way as possible. It
 //! currently requires nightly Rust for the `unboxed_closures` and `fn_traits`
@@ -77,7 +78,7 @@
 //!  * There are currently some minor limitations of syntax over normal closure
 //! syntax, which are documented below.
 //!  * The closure is coerced to a function pointer, which is wrapped by
-//! [relative::Pointer](https://docs.rs/relative) such that it can safely be
+//! [relative::Code](https://docs.rs/relative) such that it can safely be
 //! sent between processes.
 //!
 //! # Examples of wrapped closures
@@ -94,6 +95,7 @@
 //! FnMut!(|a| a+1)
 //! # )(0i32);
 //! ```
+//!
 //! **Annotated, non-capturing closure:**
 //! ```
 //! # #[macro_use] extern crate serde_closure;
@@ -107,94 +109,75 @@
 //! FnMut!(|a: String| -> String { a.to_uppercase() })
 //! # )(String::from("abc"));
 //! ```
+//!
 //! **Inferred closure, capturing `num`:**
 //! ```
 //! # #[macro_use] extern crate serde_closure;
 //! let mut num = 0;
 //! # (
-//! move |a| num += a
+//! |a| num += a
 //! # )(1i32);
 //! ```
 //! ```
 //! # #[macro_use] extern crate serde_closure;
 //! let mut num = 0;
 //! # (
-//! FnMut!([num] move |a| *num += a)
+//! FnMut!([num] |a| *num += a)
 //! # )(1i32);
 //! ```
-//! Note: If any variables are captured then the `move` keyword must be present.
-//! As this is a FnMut closure, `num` is a mutable reference, and must be
+//! Note: As this is a FnMut closure, `num` is a mutable reference, and must be
 //! dereferenced to use.
 //!
-//! **Capturing `hello` requiring extra annotation:**
+//! **`move` closure, capturing `hello` and `world`:**
 //! ```
 //! # #[macro_use] extern crate serde_closure;
-//! let mut hello = String::new();
+//! let hello = String::from("hello");
+//! let mut world = String::new();
 //! # (
-//! move |a| {
-//! 	hello = hello.to_uppercase() + a;
-//! 	hello.clone()
+//! move |name| {
+//! 	world += (hello.to_uppercase() + name).as_str();
 //! }
 //! # )("abc");
 //! ```
 //! ```
 //! # #[macro_use] extern crate serde_closure;
-//! let mut hello = String::new();
+//! let hello = String::from("hello");
+//! let mut world = String::new();
 //! # (
-//! FnMut!([hello] move |a| {
-//! 	let hello: &mut String = hello;
-//! 	*hello = hello.to_uppercase() + a;
-//! 	hello.clone()
+//! FnMut!([hello,world] move |name| {
+//! 	*world += (hello.to_uppercase() + name).as_str();
 //! })
 //! # )("abc");
 //! ```
-//! Note: `hello` needs its type annotated in the closure.
-//!
-//! **Complex closure, capturing `a` and `b`:**
-//! ```
-//! # #[macro_use] extern crate serde_closure;
-//! let (mut a, mut b) = (1usize, String::from("foo"));
-//! # (
-//! move |c, d: &_, e: &mut _, f: String, g: &String, h: &mut String| {
-//! 	*e += a + c + *d;
-//! 	a += *e;
-//! 	*h += (b.clone() + f.as_str() + g.as_str()).as_str();
-//! 	b += h.as_str();
-//! }
-//! # )(1usize, &2usize, &mut 3usize, String::from("abc"), &String::from("def"), &mut String::from("ghi"));
-//! ```
-//! ```
-//! # #[macro_use] extern crate serde_closure;
-//! let (mut a, mut b) = (1usize, String::from("foo"));
-//! # (
-//! FnMut!([a,b] move |c:_, d: &_, e: &mut _, f: String, g: &String, h: &mut String| {
-//! 	let b: &mut String = b;
-//! 	*e += *a + c + *d;
-//! 	*a += *e;
-//! 	*h += ((b.clone() + f.as_str() + g.as_str())).as_str();
-//! 	*b += h.as_str();
-//! })
-//! # )(1usize, &2usize, &mut 3usize, String::from("abc"), &String::from("def"), &mut String::from("ghi"));
-//! ```
+//! Note: `world` must be dereferenced to use.
 //!
 //! # Cosmetic limitations
-//! As visible above, there are currently some limitations that often
-//! necessitate extra annotation that you might typically expect to be
-//! redundant.
-//!  * Type inference doesn't work as well as normal, hence extra type
-//! annotations might be needed;
+//! As visible above, there are currently some minor limitations:
 //!  * The captured variables in FnMut and Fn closures are references, so need
 //! to be dereferenced;
-//!  * Types cannot be annotated in the list of captured variables;
-//!  * If any of the closure arguments are annotated with types (i.e.
-//! `|a:i32|0`) then all must be (though `_` can be used), and patterns can no
-//! longer be used (i.e. `|&a:&i32|0` will not work).
-//!  * The `move` keyword must be present if any variables are captured.
+//!  * Compiler errors are not as helpful as normal:
+//! ```text
+//! error[E0308]: mismatched types
+//! ...
+//!    = note: expected type `for<..> fn(&'r mut (..), (..))`
+//!               found type `[closure@<FnMut macros>:9:9: 10:44 my_var:_]`
+//! ```
+//! means that `my_var` is a captured variable, but was not explicitly listed.
 
 #![doc(html_root_url = "https://docs.rs/serde_closure/0.1.2")]
 #![feature(unboxed_closures, fn_traits, core_intrinsics)]
-#![deny(missing_docs, warnings, deprecated)]
-#![allow(intra_doc_link_resolution_failure)]
+#![warn(
+	missing_copy_implementations,
+	missing_debug_implementations,
+	missing_docs,
+	trivial_numeric_casts,
+	unused_extern_crates,
+	unused_import_braces,
+	unused_qualifications,
+	unused_results,
+)] // from https://github.com/rust-unofficial/patterns/blob/master/anti_patterns/deny-warnings.md
+#![cfg_attr(feature = "cargo-clippy", warn(clippy_pedantic))]
+#![cfg_attr(feature = "cargo-clippy", allow(inline_always, doc_markdown))]
 
 extern crate relative;
 extern crate serde;
@@ -205,7 +188,7 @@ extern crate bincode;
 #[cfg(test)]
 extern crate serde_json;
 
-use relative::{Code, Pointer};
+use relative::Code;
 use std::{cmp, fmt, hash, intrinsics, marker, mem, ops};
 
 /// A struct representing a serializable closure, created by the
@@ -220,22 +203,26 @@ use std::{cmp, fmt, hash, intrinsics, marker, mem, ops};
 /// See the [readme](self) for examples.
 #[derive(Serialize, Deserialize)]
 #[serde(
-	bound(serialize = "E: serde::ser::Serialize"),
-	bound(deserialize = "E: serde::de::Deserialize<'de>")
+	bound(serialize = "E: serde::ser::Serialize, F: 'static"),
+	bound(deserialize = "E: serde::de::Deserialize<'de>, F: 'static")
 )]
 pub struct FnOnce<E, F> {
 	env: E,
-	addr: Pointer<Code<fn()>>, // TODO: Code<F> ?
+	addr: Code<F>,
 	#[serde(skip)]
 	marker: marker::PhantomData<F>,
 }
 impl<E, F> FnOnce<E, F> {
 	#[doc(hidden)]
 	#[inline(always)]
-	pub fn private_construct(env: E, addr: *const (), _: &F) -> FnOnce<E, F> {
-		FnOnce {
+	/// Fn pointers from coerced closures will, bar an extremely odd turn of
+	/// events, point into the same segment as the base used by
+	/// [relative::Code], thus upholding [relative::Code::from()]'s unsafe
+	/// contract.
+	pub unsafe fn private_construct(env: E, addr: *const (), _: &F) -> Self {
+		Self {
 			env,
-			addr: unsafe { Pointer::from(&*(addr as *const Code<fn()>)) },
+			addr: Code::from(addr),
 			marker: marker::PhantomData,
 		}
 	}
@@ -247,11 +234,12 @@ where
 	type Output = O;
 	#[inline(always)]
 	extern "rust-call" fn call_once(self, args: T) -> Self::Output {
-		unsafe {
-			mem::transmute::<*const (), fn(E, T) -> F::Output>(
-				self.addr.to() as *const Code<fn()> as *const ()
-			)
-		}.call_once((self.env, args))
+		// This is fine *as long as* private_construct is given the same fn pointer in last 2 args.
+		// This is always true for what should be the only caller: the macro.
+		// This seems necessary to avoid bounding the lifetimes of the fn arguments, which reduces
+		// the utility substantially.
+		unsafe { mem::transmute::<*const (), fn(E, T) -> F::Output>(self.addr.to()) }
+			.call_once((self.env, args))
 	}
 }
 impl<E, T> Clone for FnOnce<E, T>
@@ -259,7 +247,7 @@ where
 	E: Clone,
 {
 	fn clone(&self) -> Self {
-		FnOnce {
+		Self {
 			env: self.env.clone(),
 			addr: self.addr,
 			marker: marker::PhantomData,
@@ -285,9 +273,9 @@ where
 		self.addr.hash(state);
 	}
 }
-impl<E, T> cmp::PartialOrd for FnOnce<E, T>
+impl<E, T> PartialOrd for FnOnce<E, T>
 where
-	E: cmp::PartialOrd,
+	E: PartialOrd,
 {
 	fn partial_cmp(&self, other: &Self) -> Option<cmp::Ordering> {
 		self.env
@@ -295,9 +283,9 @@ where
 			.map(|x| x.then_with(|| self.addr.cmp(&other.addr)))
 	}
 }
-impl<E, T> cmp::Ord for FnOnce<E, T>
+impl<E, T> Ord for FnOnce<E, T>
 where
-	E: cmp::Ord,
+	E: Ord,
 {
 	fn cmp(&self, other: &Self) -> cmp::Ordering {
 		self.env
@@ -329,22 +317,26 @@ where
 /// See the [readme](self) for examples.
 #[derive(Serialize, Deserialize)]
 #[serde(
-	bound(serialize = "E: serde::ser::Serialize"),
-	bound(deserialize = "E: serde::de::Deserialize<'de>")
+	bound(serialize = "E: serde::ser::Serialize, F: 'static"),
+	bound(deserialize = "E: serde::de::Deserialize<'de>, F: 'static")
 )]
 pub struct FnMut<E, F> {
 	env: E,
-	addr: Pointer<Code<fn()>>,
+	addr: Code<F>,
 	#[serde(skip)]
 	marker: marker::PhantomData<F>,
 }
 impl<E, F> FnMut<E, F> {
 	#[doc(hidden)]
 	#[inline(always)]
-	pub fn private_construct(env: E, addr: *const (), _: &F) -> FnMut<E, F> {
-		FnMut {
+	/// Fn pointers from coerced closures will, bar an extremely odd turn of
+	/// events, point into the same segment as the base used by
+	/// [relative::Code], thus upholding [relative::Code::from()]'s unsafe
+	/// contract.
+	pub unsafe fn private_construct(env: E, addr: *const (), _: &F) -> Self {
+		Self {
 			env,
-			addr: unsafe { Pointer::from(&*(addr as *const Code<fn()>)) },
+			addr: Code::from(addr),
 			marker: marker::PhantomData,
 		}
 	}
@@ -356,11 +348,12 @@ where
 	type Output = O;
 	#[inline(always)]
 	extern "rust-call" fn call_once(mut self, args: T) -> Self::Output {
-		unsafe {
-			mem::transmute::<*const (), fn(&mut E, T) -> F::Output>(self.addr.to()
-				as *const Code<fn()>
-				as *const ())
-		}.call_once((&mut self.env, args))
+		// This is fine *as long as* private_construct is given the same fn pointer in last 2 args.
+		// This is always true for what should be the only caller: the macro.
+		// This seems necessary to avoid bounding the lifetimes of the fn arguments, which reduces
+		// the utility substantially.
+		unsafe { mem::transmute::<*const (), fn(&mut E, T) -> F::Output>(self.addr.to()) }
+			.call_once((&mut self.env, args))
 	}
 }
 impl<E, T, F, O> ops::FnMut<T> for FnMut<E, F>
@@ -369,11 +362,12 @@ where
 {
 	#[inline(always)]
 	extern "rust-call" fn call_mut(&mut self, args: T) -> Self::Output {
-		unsafe {
-			mem::transmute::<*const (), fn(&mut E, T) -> F::Output>(self.addr.to()
-				as *const Code<fn()>
-				as *const ())
-		}.call_mut((&mut self.env, args))
+		// This is fine *as long as* private_construct is given the same fn pointer in last 2 args.
+		// This is always true for what should be the only caller: the macro.
+		// This seems necessary to avoid bounding the lifetimes of the fn arguments, which reduces
+		// the utility substantially.
+		unsafe { mem::transmute::<*const (), fn(&mut E, T) -> F::Output>(self.addr.to()) }
+			.call_mut((&mut self.env, args))
 	}
 }
 impl<E, T> Clone for FnMut<E, T>
@@ -381,7 +375,7 @@ where
 	E: Clone,
 {
 	fn clone(&self) -> Self {
-		FnMut {
+		Self {
 			env: self.env.clone(),
 			addr: self.addr,
 			marker: marker::PhantomData,
@@ -407,9 +401,9 @@ where
 		self.addr.hash(state);
 	}
 }
-impl<E, T> cmp::PartialOrd for FnMut<E, T>
+impl<E, T> PartialOrd for FnMut<E, T>
 where
-	E: cmp::PartialOrd,
+	E: PartialOrd,
 {
 	fn partial_cmp(&self, other: &Self) -> Option<cmp::Ordering> {
 		self.env
@@ -417,9 +411,9 @@ where
 			.map(|x| x.then_with(|| self.addr.cmp(&other.addr)))
 	}
 }
-impl<E, T> cmp::Ord for FnMut<E, T>
+impl<E, T> Ord for FnMut<E, T>
 where
-	E: cmp::Ord,
+	E: Ord,
 {
 	fn cmp(&self, other: &Self) -> cmp::Ordering {
 		self.env
@@ -451,22 +445,26 @@ where
 /// See the [readme](self) for examples.
 #[derive(Serialize, Deserialize)]
 #[serde(
-	bound(serialize = "E: serde::ser::Serialize"),
-	bound(deserialize = "E: serde::de::Deserialize<'de>")
+	bound(serialize = "E: serde::ser::Serialize, F: 'static"),
+	bound(deserialize = "E: serde::de::Deserialize<'de>, F: 'static")
 )]
 pub struct Fn<E, F> {
 	env: E,
-	addr: Pointer<Code<fn()>>,
+	addr: Code<F>,
 	#[serde(skip)]
 	marker: marker::PhantomData<F>,
 }
 impl<E, F> Fn<E, F> {
 	#[doc(hidden)]
 	#[inline(always)]
-	pub fn private_construct(env: E, addr: *const (), _: &F) -> Fn<E, F> {
-		Fn {
+	/// Fn pointers from coerced closures will, bar an extremely odd turn of
+	/// events, point into the same segment as the base used by
+	/// [relative::Code], thus upholding [relative::Code::from()]'s unsafe
+	/// contract.
+	pub unsafe fn private_construct(env: E, addr: *const (), _: &F) -> Self {
+		Self {
 			env,
-			addr: unsafe { Pointer::from(&*(addr as *const Code<fn()>)) },
+			addr: Code::from(addr),
 			marker: marker::PhantomData,
 		}
 	}
@@ -478,11 +476,12 @@ where
 	type Output = O;
 	#[inline(always)]
 	extern "rust-call" fn call_once(self, args: T) -> Self::Output {
-		unsafe {
-			mem::transmute::<*const (), fn(&E, T) -> F::Output>(
-				self.addr.to() as *const Code<fn()> as *const ()
-			)
-		}.call_once((&self.env, args))
+		// This is fine *as long as* private_construct is given the same fn pointer in last 2 args.
+		// This is always true for what should be the only caller: the macro.
+		// This seems necessary to avoid bounding the lifetimes of the fn arguments, which reduces
+		// the utility substantially.
+		unsafe { mem::transmute::<*const (), fn(&E, T) -> F::Output>(self.addr.to()) }
+			.call_once((&self.env, args))
 	}
 }
 impl<E, T, F, O> ops::FnMut<T> for Fn<E, F>
@@ -491,11 +490,12 @@ where
 {
 	#[inline(always)]
 	extern "rust-call" fn call_mut(&mut self, args: T) -> Self::Output {
-		unsafe {
-			mem::transmute::<*const (), fn(&E, T) -> F::Output>(
-				self.addr.to() as *const Code<fn()> as *const ()
-			)
-		}.call_mut((&self.env, args))
+		// This is fine *as long as* private_construct is given the same fn pointer in last 2 args.
+		// This is always true for what should be the only caller: the macro.
+		// This seems necessary to avoid bounding the lifetimes of the fn arguments, which reduces
+		// the utility substantially.
+		unsafe { mem::transmute::<*const (), fn(&E, T) -> F::Output>(self.addr.to()) }
+			.call_mut((&self.env, args))
 	}
 }
 impl<E, T, F, O> ops::Fn<T> for Fn<E, F>
@@ -504,11 +504,12 @@ where
 {
 	#[inline(always)]
 	extern "rust-call" fn call(&self, args: T) -> Self::Output {
-		unsafe {
-			mem::transmute::<*const (), fn(&E, T) -> F::Output>(
-				self.addr.to() as *const Code<fn()> as *const ()
-			)
-		}.call((&self.env, args))
+		// This is fine *as long as* private_construct is given the same fn pointer in last 2 args.
+		// This is always true for what should be the only caller: the macro.
+		// This seems necessary to avoid bounding the lifetimes of the fn arguments, which reduces
+		// the utility substantially.
+		unsafe { mem::transmute::<*const (), fn(&E, T) -> F::Output>(self.addr.to()) }
+			.call((&self.env, args))
 	}
 }
 impl<E, T> Clone for Fn<E, T>
@@ -516,7 +517,7 @@ where
 	E: Clone,
 {
 	fn clone(&self) -> Self {
-		Fn {
+		Self {
 			env: self.env.clone(),
 			addr: self.addr,
 			marker: marker::PhantomData,
@@ -542,9 +543,9 @@ where
 		self.addr.hash(state);
 	}
 }
-impl<E, T> cmp::PartialOrd for Fn<E, T>
+impl<E, T> PartialOrd for Fn<E, T>
 where
-	E: cmp::PartialOrd,
+	E: PartialOrd,
 {
 	fn partial_cmp(&self, other: &Self) -> Option<cmp::Ordering> {
 		self.env
@@ -552,9 +553,9 @@ where
 			.map(|x| x.then_with(|| self.addr.cmp(&other.addr)))
 	}
 }
-impl<E, T> cmp::Ord for Fn<E, T>
+impl<E, T> Ord for Fn<E, T>
 where
-	E: cmp::Ord,
+	E: Ord,
 {
 	fn cmp(&self, other: &Self) -> cmp::Ordering {
 		self.env
@@ -582,9 +583,10 @@ where
 /// See the [readme](self) for examples.
 #[macro_export]
 macro_rules! FnOnce {
-	(@abc ( $( $env:ident ,)* ) ( $( $arg:pat => $ty:ty ,)* ) $o:ty $block:block) => ({
+	([$( $env:ident ,)* ] move |$( $arg:pat => $ty:ty, $t:ident $u:ty,)*| -> $o:ty $block:block) => ({
 		let env = ($($env,)*);
-		let closure = move|($($env,)*):_,($($arg,)*):($($ty,)*)|->$o { $block };
+		fn apply_env_type<E,O,$($t,)*>(_ :&E, f: fn(E,($($u,)*))->O) -> fn(E,($($u,)*))->O {f}
+		let closure = apply_env_type(&env, move|($($env,)*),($($arg,)*):($($ty,)*)|->$o { $block });
 		if false {
 			#[allow(unreachable_code)]
 			let _: $o = closure(env,unreachable!());
@@ -594,73 +596,73 @@ macro_rules! FnOnce {
 			#[allow(unreachable_code)]
 			let _: $o = fn_ptr(env,unreachable!());
 		}
-		$crate::FnOnce::private_construct(
-			env,
-			fn_ptr as *const (),
-			&fn_ptr,
-		)
+		#[allow(unused_unsafe)]
+		unsafe {
+			$crate::FnOnce::private_construct(
+				env,
+				fn_ptr as *const (),
+				&fn_ptr,
+			)
+		}
 	});
-	// arg out
-	($([$( $env:ident ),* ])* move | $( $arg:ident : $ty:ty ),* | -> $o:ty $block:block) => ({
-		FnOnce!(@abc ($($($env,)*)*) ($($arg => $ty,)*) $o $block )
+	([$( $env:ident ,)* ] ref |$( $arg:pat => $ty:ty, $t:ident $u:ty,)*| -> $o:ty $block:block) => ({
+		let env = ($(&$env,)*);
+		fn apply_env_type<E,O,$($t,)*>(_ :&E, f: fn(E,($($u,)*))->O) -> fn(E,($($u,)*))->O {f}
+		let closure = apply_env_type(&env, |($($env,)*),($($arg,)*):($($ty,)*)|->$o { $block });
+		if false {
+			#[allow(unreachable_code)]
+			let _: $o = closure(env,unreachable!());
+		}
+		let fn_ptr = closure as fn(_,($($ty,)*))->$o;
+		if false {
+			#[allow(unreachable_code)]
+			let _: $o = fn_ptr(env,unreachable!());
+		}
+		#[allow(unused_unsafe)]
+		unsafe {
+			$crate::FnOnce::private_construct(
+				env,
+				fn_ptr as *const (),
+				&fn_ptr,
+			)
+		}
 	});
-	($([$( $env:ident ),* ])* move | $( $arg:pat => $ty:ty ),* | -> $o:ty $block:block) => ({
-		FnOnce!(@abc ($($($env,)*)*) ($($arg => $ty,)*) $o $block )
-	});
-	// !arg out
-	($([$( $env:ident ),* ])* move || -> $o:ty $block:block) => ({
-		FnOnce!(@abc ($($($env,)*)*) () $o $block )
-	});
-	// arg !out
-	($([$( $env:ident ),* ])* move | $( $arg:ident : $ty:ty ),* | $block:expr) => ({
-		FnOnce!(@abc ($($($env,)*)*) ($($arg => $ty,)*) _ { $block } )
-	});
-	($([$( $env:ident ),* ])* move | $( $arg:pat => $ty:ty ),* | $block:expr) => ({
-		FnOnce!(@abc ($($($env,)*)*) ($($arg => $ty,)*) _ { $block } )
-	});
-	// !arg !out
-	($([$( $env:ident ),* ])* move || $block:expr) => ({
-		FnOnce!(@abc ($($($env,)*)*) () _ { $block } )
-	});
-	// $arg out
-	($([$( $env:ident ),* ])* move | $( $arg:pat ),* | -> $o:ty $block:block) => ({
-		FnOnce!(@abc ($($($env,)*)*) ($($arg => _,)*) $o $block )
-	});
-	// $arg !out
-	($([$( $env:ident ),* ])* move | $( $arg:pat ),* | $block:expr) => ({
-		FnOnce!(@abc ($($($env,)*)*) ($($arg => _,)*) _ { $block } )
-	});
-	// arg out
-	($([])* | $( $arg:ident : $ty:ty ),* | -> $o:ty $block:block) => ({
-		FnOnce!(@abc () ($($arg => $ty,)*) $o $block )
-	});
-	($([])* | $( $arg:pat => $ty:ty ),* | -> $o:ty $block:block) => ({
-		FnOnce!(@abc () ($($arg => $ty,)*) $o $block )
-	});
-	// !arg out
-	($([])* || -> $o:ty $block:block) => ({
-		FnOnce!(@abc () () -> $o $block )
-	});
-	// arg !out
-	($([])* | $( $arg:ident : $ty:ty ),* | $block:expr) => ({
-		FnOnce!(@abc () ($($arg => $ty,)*) _ { $block } )
-	});
-	($([])* | $( $arg:pat => $ty:ty ),* | $block:expr) => ({
-		FnOnce!(@abc () ($($arg => $ty,)*) _ { $block } )
-	});
-	// !arg !out
-	($([])* || $block:expr) => ({
-		FnOnce!(@abc () () _ { $block } )
-	});
-	// $arg out
-	($([])* | $( $arg:pat ),* | -> $o:ty $block:block) => ({
-		FnOnce!(@abc () ($($arg => _,)*) $o $block )
-	});
-	// $arg !out
-	($([])* | $( $arg:pat ),* | $block:expr) => ({
-		FnOnce!(@abc () ($($arg => _,)*) _ { $block } )
-	});
+
+	(@args [$( $env:ident ,)* ] $move:ident |$( $arg:pat => $type:ty, $t:ident $u:ty,)*| ($s:ident $($ss:ident)*) |&mut $arg_:pat, $( $tail:tt )*) => { FnOnce!(@args [$($env,)*] $move |$($arg => $type,$t $u,)* &mut $arg_ => &mut _, $s &mut $s,| ($($ss)*) | $( $tail )*) };
+	(@args [$( $env:ident ,)* ] $move:ident |$( $arg:pat => $type:ty, $t:ident $u:ty,)*| ($s:ident $($ss:ident)*) |& $arg_:pat, $( $tail:tt )*) => { FnOnce!(@args [$($env,)*] $move |$($arg => $type,$t $u,)* & $arg_ => &_, $s & $s,| ($($ss)*) | $( $tail )*) };
+	(@args [$( $env:ident ,)* ] $move:ident |$( $arg:pat => $type:ty, $t:ident $u:ty,)*| ($s:ident $($ss:ident)*) |$arg_:pat, $( $tail:tt )*) => { FnOnce!(@args [$($env,)*] $move |$($arg => $type,$t $u,)* $arg_ => _, $s $s,| ($($ss)*) | $( $tail )*) };
+	(@args [$( $env:ident ,)* ] $move:ident |$( $arg:pat => $type:ty, $t:ident $u:ty,)*| ($s:ident $($ss:ident)*) |&mut $arg_:ident: $type_:ty, $( $tail:tt )*) => { FnOnce!(@args [$($env,)*] $move |$($arg => $type,$t $u,)* &mut $arg_ => $type_, $s &mut $s,| ($($ss)*) | $( $tail )*) };
+	(@args [$( $env:ident ,)* ] $move:ident |$( $arg:pat => $type:ty, $t:ident $u:ty,)*| ($s:ident $($ss:ident)*) |& $arg_:ident: $type_:ty, $( $tail:tt )*) => { FnOnce!(@args [$($env,)*] $move |$($arg => $type,$t $u,)* & $arg_ => $type_, $s & $s,| ($($ss)*) | $( $tail )*) };
+	(@args [$( $env:ident ,)* ] $move:ident |$( $arg:pat => $type:ty, $t:ident $u:ty,)*| ($s:ident $($ss:ident)*) |$arg_:ident: &mut $type_:ty, $( $tail:tt )*) => { FnOnce!(@args [$($env,)*] $move |$($arg => $type,$t $u,)* $arg_ => &mut $type_, $s &mut $s,| ($($ss)*) | $( $tail )*) };
+	(@args [$( $env:ident ,)* ] $move:ident |$( $arg:pat => $type:ty, $t:ident $u:ty,)*| ($s:ident $($ss:ident)*) |$arg_:ident: & $type_:ty, $( $tail:tt )*) => { FnOnce!(@args [$($env,)*] $move |$($arg => $type,$t $u,)* $arg_ => & $type_, $s & $s,| ($($ss)*) | $( $tail )*) };
+	(@args [$( $env:ident ,)* ] $move:ident |$( $arg:pat => $type:ty, $t:ident $u:ty,)*| ($s:ident $($ss:ident)*) |$arg_:ident: $type_:ty, $( $tail:tt )*) => { FnOnce!(@args [$($env,)*] $move |$($arg => $type,$t $u,)* $arg_ => $type_, $s $s,| ($($ss)*) | $( $tail )*) };
+	(@args [$( $env:ident ,)* ] $move:ident |$( $arg:pat => $type:ty, $t:ident $u:ty,)*| ($s:ident $($ss:ident)*) |$arg_:pat=> $type_:ty, $( $tail:tt )*) => { FnOnce!(@args [$($env,)*] $move |$($arg => $type,$t $u,)* $arg_ => $type_, $s $s,| ($($ss)*) | $( $tail )*) };
+
+	(@args [$( $env:ident ,)* ] $move:ident |$( $arg:pat => $type:ty, $t:ident $u:ty,)*| ($s:ident $($ss:ident)*) |&mut $arg_:pat $(,)*| $( $tail:tt )*) => { FnOnce!(@args [$($env,)*] $move |$($arg => $type,$t $u,)* &mut $arg_ => &mut _, $s &mut $s,| ($($ss)*) || $( $tail )*) };
+	(@args [$( $env:ident ,)* ] $move:ident |$( $arg:pat => $type:ty, $t:ident $u:ty,)*| ($s:ident $($ss:ident)*) |& $arg_:pat $(,)*| $( $tail:tt )*) => { FnOnce!(@args [$($env,)*] $move |$($arg => $type,$t $u,)* & $arg_ => &_, $s & $s,| ($($ss)*) || $( $tail )*) };
+	(@args [$( $env:ident ,)* ] $move:ident |$( $arg:pat => $type:ty, $t:ident $u:ty,)*| ($s:ident $($ss:ident)*) |$arg_:pat $(,)*| $( $tail:tt )*) => { FnOnce!(@args [$($env,)*] $move |$($arg => $type,$t $u,)* $arg_ => _, $s $s,| ($($ss)*) || $( $tail )*) };
+	(@args [$( $env:ident ,)* ] $move:ident |$( $arg:pat => $type:ty, $t:ident $u:ty,)*| ($s:ident $($ss:ident)*) |&mut $arg_:ident: $type_:ty $(,)*| $( $tail:tt )*) => { FnOnce!(@args [$($env,)*] $move |$($arg => $type,$t $u,)* &mut $arg_ => $type_, $s &mut $s,| ($($ss)*) || $( $tail )*) };
+	(@args [$( $env:ident ,)* ] $move:ident |$( $arg:pat => $type:ty, $t:ident $u:ty,)*| ($s:ident $($ss:ident)*) |& $arg_:ident: $type_:ty $(,)*| $( $tail:tt )*) => { FnOnce!(@args [$($env,)*] $move |$($arg => $type,$t $u,)* & $arg_ => $type_, $s & $s,| ($($ss)*) || $( $tail )*) };
+	(@args [$( $env:ident ,)* ] $move:ident |$( $arg:pat => $type:ty, $t:ident $u:ty,)*| ($s:ident $($ss:ident)*) |$arg_:ident: &mut $type_:ty $(,)*| $( $tail:tt )*) => { FnOnce!(@args [$($env,)*] $move |$($arg => $type,$t $u,)* $arg_ => &mut $type_, $s &mut $s,| ($($ss)*) || $( $tail )*) };
+	(@args [$( $env:ident ,)* ] $move:ident |$( $arg:pat => $type:ty, $t:ident $u:ty,)*| ($s:ident $($ss:ident)*) |$arg_:ident: & $type_:ty $(,)*| $( $tail:tt )*) => { FnOnce!(@args [$($env,)*] $move |$($arg => $type,$t $u,)* $arg_ => & $type_, $s & $s,| ($($ss)*) || $( $tail )*) };
+	(@args [$( $env:ident ,)* ] $move:ident |$( $arg:pat => $type:ty, $t:ident $u:ty,)*| ($s:ident $($ss:ident)*) |$arg_:ident: $type_:ty $(,)*| $( $tail:tt )*) => { FnOnce!(@args [$($env,)*] $move |$($arg => $type,$t $u,)* $arg_ => $type_, $s $s,| ($($ss)*) || $( $tail )*) };
+	(@args [$( $env:ident ,)* ] $move:ident |$( $arg:pat => $type:ty, $t:ident $u:ty,)*| ($s:ident $($ss:ident)*) |$arg_:pat=> $type_:ty $(,)*| $( $tail:tt )*) => { FnOnce!(@args [$($env,)*] $move |$($arg => $type,$t $u,)* $arg_ => $type_, $s $s,| ($($ss)*) || $( $tail )*) };
+
+	(@args [$( $env:ident ,)* ] $move:ident |$( $arg:pat => $type:ty, $t:ident $u:ty,)*| ($($ss:ident)*) || $block:expr) => { FnOnce!([$($env,)*] $move |$($arg => $type,$t $u,)*| -> _ { $block } ) };
+	(@args [$( $env:ident ,)* ] $move:ident |$( $arg:pat => $type:ty, $t:ident $u:ty,)*| ($($ss:ident)*) || -> $o:ty $block:block) => { FnOnce!([$($env,)*] $move |$($arg => $type,$t $u,)*| -> $o $block ) };
+
+	(@args [$( $env:ident ,)* ] $move:ident |$( $arg:pat => $type:ty, $t:ident $u:ty,)*| () |$( $tail:tt )*) => { compile_error!("This macro unfortunately only handles up to 32 arguments. Easily extendable, fork and bump it if you really need that many!") };
+
+	([$( $env:ident),* $(,)* ] move | $( $tail:tt )*) => { FnOnce!(@args [$($env,)*] move | | (T0 T1 T2 T3 T4 T5 T6 T7 T8 T9 T10 T11 T12 T13 T14 T15 T16 T17 T18 T19 T20 T21 T22 T23 T24 T25 T26 T27 T28 T29 T30 T31 T32) | $( $tail )*) };
+	(move | $( $tail:tt )*) => { FnOnce!(@args [] move | | (T0 T1 T2 T3 T4 T5 T6 T7 T8 T9 T10 T11 T12 T13 T14 T15 T16 T17 T18 T19 T20 T21 T22 T23 T24 T25 T26 T27 T28 T29 T30 T31 T32) | $( $tail )*) };
+	([$( $env:ident),* $(,)* ] move || $( $tail:tt )*) => { FnOnce!(@args [$($env,)*] move | | (T0 T1 T2 T3 T4 T5 T6 T7 T8 T9 T10 T11 T12 T13 T14 T15 T16 T17 T18 T19 T20 T21 T22 T23 T24 T25 T26 T27 T28 T29 T30 T31 T32) || $( $tail )*) };
+	(move || $( $tail:tt )*) => { FnOnce!(@args [] move | | (T0 T1 T2 T3 T4 T5 T6 T7 T8 T9 T10 T11 T12 T13 T14 T15 T16 T17 T18 T19 T20 T21 T22 T23 T24 T25 T26 T27 T28 T29 T30 T31 T32) || $( $tail )*) };
+	([$( $env:ident),* $(,)* ] | $( $tail:tt )*) => { FnOnce!(@args [$($env,)*] ref | | (T0 T1 T2 T3 T4 T5 T6 T7 T8 T9 T10 T11 T12 T13 T14 T15 T16 T17 T18 T19 T20 T21 T22 T23 T24 T25 T26 T27 T28 T29 T30 T31 T32) | $( $tail )*) };
+	(| $( $tail:tt )*) => { FnOnce!(@args [] ref | | (T0 T1 T2 T3 T4 T5 T6 T7 T8 T9 T10 T11 T12 T13 T14 T15 T16 T17 T18 T19 T20 T21 T22 T23 T24 T25 T26 T27 T28 T29 T30 T31 T32) | $( $tail )*) };
+	([$( $env:ident),* $(,)* ] || $( $tail:tt )*) => { FnOnce!(@args [$($env,)*] ref | | (T0 T1 T2 T3 T4 T5 T6 T7 T8 T9 T10 T11 T12 T13 T14 T15 T16 T17 T18 T19 T20 T21 T22 T23 T24 T25 T26 T27 T28 T29 T30 T31 T32) || $( $tail )*) };
+	(|| $( $tail:tt )*) => { FnOnce!(@args [] ref | | (T0 T1 T2 T3 T4 T5 T6 T7 T8 T9 T10 T11 T12 T13 T14 T15 T16 T17 T18 T19 T20 T21 T22 T23 T24 T25 T26 T27 T28 T29 T30 T31 T32) || $( $tail )*) };
 }
+
 /// Macro that wraps a closure, evaluating to a [FnMut](struct@FnMut) struct
 /// that implements [std::ops::FnMut], serde's
 /// [Serialize](serde::ser::Serialize) and
@@ -669,9 +671,10 @@ macro_rules! FnOnce {
 /// See the [readme](self) for examples.
 #[macro_export]
 macro_rules! FnMut {
-	(@abc ( $( $env:ident ,)* ) ( $( $arg:pat => $ty:ty ,)* ) $o:ty $block:block) => ({
+	([$( $env:ident ,)* ] move |$( $arg:pat => $ty:ty, $t:ident $u:ty,)*| -> $o:ty $block:block) => ({
 		let mut env = ($($env,)*);
-		let closure = move|&mut ($(ref mut $env,)*):&mut _,($($arg,)*):($($ty,)*)|->$o { $block };
+		fn apply_env_type<E,O,$($t,)*>(_ :&E, f: fn(&mut E,($($u,)*))->O) -> fn(&mut E,($($u,)*))->O {f}
+		let closure = apply_env_type(&env, move|&mut ($(ref mut $env,)*):&mut _,($($arg,)*):($($ty,)*)|->$o { $block });
 		if false {
 			#[allow(unreachable_code)]
 			let _: $o = closure(&mut env,unreachable!());
@@ -681,73 +684,73 @@ macro_rules! FnMut {
 			#[allow(unreachable_code)]
 			let _: $o = fn_ptr(&mut env,unreachable!());
 		}
-		$crate::FnMut::private_construct(
-			env,
-			fn_ptr as *const (),
-			&fn_ptr,
-		)
+		#[allow(unused_unsafe)]
+		unsafe {
+			$crate::FnMut::private_construct(
+				env,
+				fn_ptr as *const (),
+				&fn_ptr,
+			)
+		}
 	});
-	// arg out
-	($([$( $env:ident ),* ])* move | $( $arg:ident : $ty:ty ),* | -> $o:ty $block:block) => ({
-		FnMut!(@abc ($($($env,)*)*) ($($arg => $ty,)*) $o $block )
+	([$( $env:ident ,)* ] ref |$( $arg:pat => $ty:ty, $t:ident $u:ty,)*| -> $o:ty $block:block) => ({
+		let mut env = ($(&mut $env,)*);
+		fn apply_env_type<E,O,$($t,)*>(_ :&E, f: fn(&mut E,($($u,)*))->O) -> fn(&mut E,($($u,)*))->O {f}
+		let closure = apply_env_type(&env, |&mut ($(&mut ref mut $env,)*):&mut _,($($arg,)*):($($ty,)*)|->$o { $block });
+		if false {
+			#[allow(unreachable_code)]
+			let _: $o = closure(&mut env,unreachable!());
+		}
+		let fn_ptr = closure as fn(&mut _,($($ty,)*))->$o;
+		if false {
+			#[allow(unreachable_code)]
+			let _: $o = fn_ptr(&mut env,unreachable!());
+		}
+		#[allow(unused_unsafe)]
+		unsafe {
+			$crate::FnMut::private_construct(
+				env,
+				fn_ptr as *const (),
+				&fn_ptr,
+			)
+		}
 	});
-	($([$( $env:ident ),* ])* move | $( $arg:pat => $ty:ty ),* | -> $o:ty $block:block) => ({
-		FnMut!(@abc ($($($env,)*)*) ($($arg => $ty,)*) $o $block )
-	});
-	// !arg out
-	($([$( $env:ident ),* ])* move || -> $o:ty $block:block) => ({
-		FnMut!(@abc ($($($env,)*)*) () $o $block )
-	});
-	// arg !out
-	($([$( $env:ident ),* ])* move | $( $arg:ident : $ty:ty ),* | $block:expr) => ({
-		FnMut!(@abc ($($($env,)*)*) ($($arg => $ty,)*) _ { $block } )
-	});
-	($([$( $env:ident ),* ])* move | $( $arg:pat => $ty:ty ),* | $block:expr) => ({
-		FnMut!(@abc ($($($env,)*)*) ($($arg => $ty,)*) _ { $block } )
-	});
-	// !arg !out
-	($([$( $env:ident ),* ])* move || $block:expr) => ({
-		FnMut!(@abc ($($($env,)*)*) () _ { $block } )
-	});
-	// $arg out
-	($([$( $env:ident ),* ])* move | $( $arg:pat ),* | -> $o:ty $block:block) => ({
-		FnMut!(@abc ($($($env,)*)*) ($($arg => _,)*) $o $block )
-	});
-	// $arg !out
-	($([$( $env:ident ),* ])* move | $( $arg:pat ),* | $block:expr) => ({
-		FnMut!(@abc ($($($env,)*)*) ($($arg => _,)*) _ { $block } )
-	});
-	// arg out
-	($([])* | $( $arg:ident : $ty:ty ),* | -> $o:ty $block:block) => ({
-		FnMut!(@abc () ($($arg => $ty,)*) $o $block )
-	});
-	($([])* | $( $arg:pat => $ty:ty ),* | -> $o:ty $block:block) => ({
-		FnMut!(@abc () ($($arg => $ty,)*) $o $block )
-	});
-	// !arg out
-	($([])* || -> $o:ty $block:block) => ({
-		FnMut!(@abc () () -> $o $block )
-	});
-	// arg !out
-	($([])* | $( $arg:ident : $ty:ty ),* | $block:expr) => ({
-		FnMut!(@abc () ($($arg => $ty,)*) _ { $block } )
-	});
-	($([])* | $( $arg:pat => $ty:ty ),* | $block:expr) => ({
-		FnMut!(@abc () ($($arg => $ty,)*) _ { $block } )
-	});
-	// !arg !out
-	($([])* || $block:expr) => ({
-		FnMut!(@abc () () _ { $block } )
-	});
-	// $arg out
-	($([])* | $( $arg:pat ),* | -> $o:ty $block:block) => ({
-		FnMut!(@abc () ($($arg => _,)*) $o $block )
-	});
-	// $arg !out
-	($([])* | $( $arg:pat ),* | $block:expr) => ({
-		FnMut!(@abc () ($($arg => _,)*) _ { $block } )
-	});
+
+	(@args [$( $env:ident ,)* ] $move:ident |$( $arg:pat => $type:ty, $t:ident $u:ty,)*| ($s:ident $($ss:ident)*) |&mut $arg_:pat, $( $tail:tt )*) => { FnMut!(@args [$($env,)*] $move |$($arg => $type,$t $u,)* &mut $arg_ => &mut _, $s &mut $s,| ($($ss)*) | $( $tail )*) };
+	(@args [$( $env:ident ,)* ] $move:ident |$( $arg:pat => $type:ty, $t:ident $u:ty,)*| ($s:ident $($ss:ident)*) |& $arg_:pat, $( $tail:tt )*) => { FnMut!(@args [$($env,)*] $move |$($arg => $type,$t $u,)* & $arg_ => &_, $s & $s,| ($($ss)*) | $( $tail )*) };
+	(@args [$( $env:ident ,)* ] $move:ident |$( $arg:pat => $type:ty, $t:ident $u:ty,)*| ($s:ident $($ss:ident)*) |$arg_:pat, $( $tail:tt )*) => { FnMut!(@args [$($env,)*] $move |$($arg => $type,$t $u,)* $arg_ => _, $s $s,| ($($ss)*) | $( $tail )*) };
+	(@args [$( $env:ident ,)* ] $move:ident |$( $arg:pat => $type:ty, $t:ident $u:ty,)*| ($s:ident $($ss:ident)*) |&mut $arg_:ident: $type_:ty, $( $tail:tt )*) => { FnMut!(@args [$($env,)*] $move |$($arg => $type,$t $u,)* &mut $arg_ => $type_, $s &mut $s,| ($($ss)*) | $( $tail )*) };
+	(@args [$( $env:ident ,)* ] $move:ident |$( $arg:pat => $type:ty, $t:ident $u:ty,)*| ($s:ident $($ss:ident)*) |& $arg_:ident: $type_:ty, $( $tail:tt )*) => { FnMut!(@args [$($env,)*] $move |$($arg => $type,$t $u,)* & $arg_ => $type_, $s & $s,| ($($ss)*) | $( $tail )*) };
+	(@args [$( $env:ident ,)* ] $move:ident |$( $arg:pat => $type:ty, $t:ident $u:ty,)*| ($s:ident $($ss:ident)*) |$arg_:ident: &mut $type_:ty, $( $tail:tt )*) => { FnMut!(@args [$($env,)*] $move |$($arg => $type,$t $u,)* $arg_ => &mut $type_, $s &mut $s,| ($($ss)*) | $( $tail )*) };
+	(@args [$( $env:ident ,)* ] $move:ident |$( $arg:pat => $type:ty, $t:ident $u:ty,)*| ($s:ident $($ss:ident)*) |$arg_:ident: & $type_:ty, $( $tail:tt )*) => { FnMut!(@args [$($env,)*] $move |$($arg => $type,$t $u,)* $arg_ => & $type_, $s & $s,| ($($ss)*) | $( $tail )*) };
+	(@args [$( $env:ident ,)* ] $move:ident |$( $arg:pat => $type:ty, $t:ident $u:ty,)*| ($s:ident $($ss:ident)*) |$arg_:ident: $type_:ty, $( $tail:tt )*) => { FnMut!(@args [$($env,)*] $move |$($arg => $type,$t $u,)* $arg_ => $type_, $s $s,| ($($ss)*) | $( $tail )*) };
+	(@args [$( $env:ident ,)* ] $move:ident |$( $arg:pat => $type:ty, $t:ident $u:ty,)*| ($s:ident $($ss:ident)*) |$arg_:pat=> $type_:ty, $( $tail:tt )*) => { FnMut!(@args [$($env,)*] $move |$($arg => $type,$t $u,)* $arg_ => $type_, $s $s,| ($($ss)*) | $( $tail )*) };
+
+	(@args [$( $env:ident ,)* ] $move:ident |$( $arg:pat => $type:ty, $t:ident $u:ty,)*| ($s:ident $($ss:ident)*) |&mut $arg_:pat $(,)*| $( $tail:tt )*) => { FnMut!(@args [$($env,)*] $move |$($arg => $type,$t $u,)* &mut $arg_ => &mut _, $s &mut $s,| ($($ss)*) || $( $tail )*) };
+	(@args [$( $env:ident ,)* ] $move:ident |$( $arg:pat => $type:ty, $t:ident $u:ty,)*| ($s:ident $($ss:ident)*) |& $arg_:pat $(,)*| $( $tail:tt )*) => { FnMut!(@args [$($env,)*] $move |$($arg => $type,$t $u,)* & $arg_ => &_, $s & $s,| ($($ss)*) || $( $tail )*) };
+	(@args [$( $env:ident ,)* ] $move:ident |$( $arg:pat => $type:ty, $t:ident $u:ty,)*| ($s:ident $($ss:ident)*) |$arg_:pat $(,)*| $( $tail:tt )*) => { FnMut!(@args [$($env,)*] $move |$($arg => $type,$t $u,)* $arg_ => _, $s $s,| ($($ss)*) || $( $tail )*) };
+	(@args [$( $env:ident ,)* ] $move:ident |$( $arg:pat => $type:ty, $t:ident $u:ty,)*| ($s:ident $($ss:ident)*) |&mut $arg_:ident: $type_:ty $(,)*| $( $tail:tt )*) => { FnMut!(@args [$($env,)*] $move |$($arg => $type,$t $u,)* &mut $arg_ => $type_, $s &mut $s,| ($($ss)*) || $( $tail )*) };
+	(@args [$( $env:ident ,)* ] $move:ident |$( $arg:pat => $type:ty, $t:ident $u:ty,)*| ($s:ident $($ss:ident)*) |& $arg_:ident: $type_:ty $(,)*| $( $tail:tt )*) => { FnMut!(@args [$($env,)*] $move |$($arg => $type,$t $u,)* & $arg_ => $type_, $s & $s,| ($($ss)*) || $( $tail )*) };
+	(@args [$( $env:ident ,)* ] $move:ident |$( $arg:pat => $type:ty, $t:ident $u:ty,)*| ($s:ident $($ss:ident)*) |$arg_:ident: &mut $type_:ty $(,)*| $( $tail:tt )*) => { FnMut!(@args [$($env,)*] $move |$($arg => $type,$t $u,)* $arg_ => &mut $type_, $s &mut $s,| ($($ss)*) || $( $tail )*) };
+	(@args [$( $env:ident ,)* ] $move:ident |$( $arg:pat => $type:ty, $t:ident $u:ty,)*| ($s:ident $($ss:ident)*) |$arg_:ident: & $type_:ty $(,)*| $( $tail:tt )*) => { FnMut!(@args [$($env,)*] $move |$($arg => $type,$t $u,)* $arg_ => & $type_, $s & $s,| ($($ss)*) || $( $tail )*) };
+	(@args [$( $env:ident ,)* ] $move:ident |$( $arg:pat => $type:ty, $t:ident $u:ty,)*| ($s:ident $($ss:ident)*) |$arg_:ident: $type_:ty $(,)*| $( $tail:tt )*) => { FnMut!(@args [$($env,)*] $move |$($arg => $type,$t $u,)* $arg_ => $type_, $s $s,| ($($ss)*) || $( $tail )*) };
+	(@args [$( $env:ident ,)* ] $move:ident |$( $arg:pat => $type:ty, $t:ident $u:ty,)*| ($s:ident $($ss:ident)*) |$arg_:pat=> $type_:ty $(,)*| $( $tail:tt )*) => { FnMut!(@args [$($env,)*] $move |$($arg => $type,$t $u,)* $arg_ => $type_, $s $s,| ($($ss)*) || $( $tail )*) };
+
+	(@args [$( $env:ident ,)* ] $move:ident |$( $arg:pat => $type:ty, $t:ident $u:ty,)*| ($($ss:ident)*) || $block:expr) => { FnMut!([$($env,)*] $move |$($arg => $type,$t $u,)*| -> _ { $block } ) };
+	(@args [$( $env:ident ,)* ] $move:ident |$( $arg:pat => $type:ty, $t:ident $u:ty,)*| ($($ss:ident)*) || -> $o:ty $block:block) => { FnMut!([$($env,)*] $move |$($arg => $type,$t $u,)*| -> $o $block ) };
+
+	(@args [$( $env:ident ,)* ] $move:ident |$( $arg:pat => $type:ty, $t:ident $u:ty,)*| () |$( $tail:tt )*) => { compile_error!("This macro unfortunately only handles up to 32 arguments. Easily extendable, fork and bump it if you really need that many!") };
+
+	([$( $env:ident),* $(,)* ] move | $( $tail:tt )*) => { FnMut!(@args [$($env,)*] move | | (T0 T1 T2 T3 T4 T5 T6 T7 T8 T9 T10 T11 T12 T13 T14 T15 T16 T17 T18 T19 T20 T21 T22 T23 T24 T25 T26 T27 T28 T29 T30 T31 T32) | $( $tail )*) };
+	(move | $( $tail:tt )*) => { FnMut!(@args [] move | | (T0 T1 T2 T3 T4 T5 T6 T7 T8 T9 T10 T11 T12 T13 T14 T15 T16 T17 T18 T19 T20 T21 T22 T23 T24 T25 T26 T27 T28 T29 T30 T31 T32) | $( $tail )*) };
+	([$( $env:ident),* $(,)* ] move || $( $tail:tt )*) => { FnMut!(@args [$($env,)*] move | | (T0 T1 T2 T3 T4 T5 T6 T7 T8 T9 T10 T11 T12 T13 T14 T15 T16 T17 T18 T19 T20 T21 T22 T23 T24 T25 T26 T27 T28 T29 T30 T31 T32) || $( $tail )*) };
+	(move || $( $tail:tt )*) => { FnMut!(@args [] move | | (T0 T1 T2 T3 T4 T5 T6 T7 T8 T9 T10 T11 T12 T13 T14 T15 T16 T17 T18 T19 T20 T21 T22 T23 T24 T25 T26 T27 T28 T29 T30 T31 T32) || $( $tail )*) };
+	([$( $env:ident),* $(,)* ] | $( $tail:tt )*) => { FnMut!(@args [$($env,)*] ref | | (T0 T1 T2 T3 T4 T5 T6 T7 T8 T9 T10 T11 T12 T13 T14 T15 T16 T17 T18 T19 T20 T21 T22 T23 T24 T25 T26 T27 T28 T29 T30 T31 T32) | $( $tail )*) };
+	(| $( $tail:tt )*) => { FnMut!(@args [] ref | | (T0 T1 T2 T3 T4 T5 T6 T7 T8 T9 T10 T11 T12 T13 T14 T15 T16 T17 T18 T19 T20 T21 T22 T23 T24 T25 T26 T27 T28 T29 T30 T31 T32) | $( $tail )*) };
+	([$( $env:ident),* $(,)* ] || $( $tail:tt )*) => { FnMut!(@args [$($env,)*] ref | | (T0 T1 T2 T3 T4 T5 T6 T7 T8 T9 T10 T11 T12 T13 T14 T15 T16 T17 T18 T19 T20 T21 T22 T23 T24 T25 T26 T27 T28 T29 T30 T31 T32) || $( $tail )*) };
+	(|| $( $tail:tt )*) => { FnMut!(@args [] ref | | (T0 T1 T2 T3 T4 T5 T6 T7 T8 T9 T10 T11 T12 T13 T14 T15 T16 T17 T18 T19 T20 T21 T22 T23 T24 T25 T26 T27 T28 T29 T30 T31 T32) || $( $tail )*) };
 }
+
 /// Macro that wraps a closure, evaluating to a [Fn](struct@Fn) struct that
 /// implements [std::ops::Fn], serde's [Serialize](serde::ser::Serialize) and
 /// [Deserialize](serde::de::DeserializeOwned), and various convenience traits.
@@ -755,9 +758,10 @@ macro_rules! FnMut {
 /// See the [readme](self) for examples.
 #[macro_export]
 macro_rules! Fn {
-	(@abc ( $( $env:ident ,)* ) ( $( $arg:pat => $ty:ty ,)* ) $o:ty $block:block) => ({
+	([$( $env:ident ,)* ] move |$( $arg:pat => $ty:ty, $t:ident $u:ty,)*| -> $o:ty $block:block) => ({
 		let env = ($($env,)*);
-		let closure = move|&($(ref $env,)*):&_,($($arg,)*):($($ty,)*)|->$o { $block };
+		fn apply_env_type<E,O,$($t,)*>(_ :&E, f: fn(&E,($($u,)*))->O) -> fn(&E,($($u,)*))->O {f}
+		let closure = apply_env_type(&env, move|&($(ref $env,)*):&_,($($arg,)*):($($ty,)*)|->$o { $block });
 		if false {
 			#[allow(unreachable_code)]
 			let _: $o = closure(&env,unreachable!());
@@ -767,80 +771,83 @@ macro_rules! Fn {
 			#[allow(unreachable_code)]
 			let _: $o = fn_ptr(&env,unreachable!());
 		}
-		$crate::Fn::private_construct(
-			env,
-			fn_ptr as *const (),
-			&fn_ptr,
-		)
+		#[allow(unused_unsafe)]
+		unsafe {
+			$crate::Fn::private_construct(
+				env,
+				fn_ptr as *const (),
+				&fn_ptr,
+			)
+		}
 	});
-	// arg out
-	($([$( $env:ident ),* ])* move | $( $arg:ident : $ty:ty ),* | -> $o:ty $block:block) => ({
-		Fn!(@abc ($($($env,)*)*) ($($arg => $ty,)*) $o $block )
+	([$( $env:ident ,)* ] ref |$( $arg:pat => $ty:ty, $t:ident $u:ty,)*| -> $o:ty $block:block) => ({
+		let env = ($(&$env,)*);
+		fn apply_env_type<E,O,$($t,)*>(_ :&E, f: fn(&E,($($u,)*))->O) -> fn(&E,($($u,)*))->O {f}
+		let closure = apply_env_type(&env, |&($($env,)*):&_,($($arg,)*):($($ty,)*)|->$o { $block });
+		if false {
+			#[allow(unreachable_code)]
+			let _: $o = closure(&env,unreachable!());
+		}
+		let fn_ptr = closure as fn(&_,($($ty,)*))->$o;
+		if false {
+			#[allow(unreachable_code)]
+			let _: $o = fn_ptr(&env,unreachable!());
+		}
+		#[allow(unused_unsafe)]
+		unsafe {
+			$crate::Fn::private_construct(
+				env,
+				fn_ptr as *const (),
+				&fn_ptr,
+			)
+		}
 	});
-	($([$( $env:ident ),* ])* move | $( $arg:pat => $ty:ty ),* | -> $o:ty $block:block) => ({
-		Fn!(@abc ($($($env,)*)*) ($($arg => $ty,)*) $o $block )
-	});
-	// !arg out
-	($([$( $env:ident ),* ])* move || -> $o:ty $block:block) => ({
-		Fn!(@abc ($($($env,)*)*) () $o $block )
-	});
-	// arg !out
-	($([$( $env:ident ),* ])* move | $( $arg:ident : $ty:ty ),* | $block:expr) => ({
-		Fn!(@abc ($($($env,)*)*) ($($arg => $ty,)*) _ { $block } )
-	});
-	($([$( $env:ident ),* ])* move | $( $arg:pat => $ty:ty ),* | $block:expr) => ({
-		Fn!(@abc ($($($env,)*)*) ($($arg => $ty,)*) _ { $block } )
-	});
-	// !arg !out
-	($([$( $env:ident ),* ])* move || $block:expr) => ({
-		Fn!(@abc ($($($env,)*)*) () _ { $block } )
-	});
-	// $arg out
-	($([$( $env:ident ),* ])* move | $( $arg:pat ),* | -> $o:ty $block:block) => ({
-		Fn!(@abc ($($($env,)*)*) ($($arg => _,)*) $o $block )
-	});
-	// $arg !out
-	($([$( $env:ident ),* ])* move | $( $arg:pat ),* | $block:expr) => ({
-		Fn!(@abc ($($($env,)*)*) ($($arg => _,)*) _ { $block } )
-	});
-	// arg out
-	($([])* | $( $arg:ident : $ty:ty ),* | -> $o:ty $block:block) => ({
-		Fn!(@abc () ($($arg => $ty,)*) $o $block )
-	});
-	($([])* | $( $arg:pat => $ty:ty ),* | -> $o:ty $block:block) => ({
-		Fn!(@abc () ($($arg => $ty,)*) $o $block )
-	});
-	// !arg out
-	($([])* || -> $o:ty $block:block) => ({
-		Fn!(@abc () () -> $o $block )
-	});
-	// arg !out
-	($([])* | $( $arg:ident : $ty:ty ),* | $block:expr) => ({
-		Fn!(@abc () ($($arg => $ty,)*) _ { $block } )
-	});
-	($([])* | $( $arg:pat => $ty:ty ),* | $block:expr) => ({
-		Fn!(@abc () ($($arg => $ty,)*) _ { $block } )
-	});
-	// !arg !out
-	($([])* || $block:expr) => ({
-		Fn!(@abc () () _ { $block } )
-	});
-	// $arg out
-	($([])* | $( $arg:pat ),* | -> $o:ty $block:block) => ({
-		Fn!(@abc () ($($arg => _,)*) $o $block )
-	});
-	// $arg !out
-	($([])* | $( $arg:pat ),* | $block:expr) => ({
-		Fn!(@abc () ($($arg => _,)*) _ { $block } )
-	});
+
+	(@args [$( $env:ident ,)* ] $move:ident |$( $arg:pat => $type:ty, $t:ident $u:ty,)*| ($s:ident $($ss:ident)*) |&mut $arg_:pat, $( $tail:tt )*) => { Fn!(@args [$($env,)*] $move |$($arg => $type,$t $u,)* &mut $arg_ => &mut _, $s &mut $s,| ($($ss)*) | $( $tail )*) };
+	(@args [$( $env:ident ,)* ] $move:ident |$( $arg:pat => $type:ty, $t:ident $u:ty,)*| ($s:ident $($ss:ident)*) |& $arg_:pat, $( $tail:tt )*) => { Fn!(@args [$($env,)*] $move |$($arg => $type,$t $u,)* & $arg_ => &_, $s & $s,| ($($ss)*) | $( $tail )*) };
+	(@args [$( $env:ident ,)* ] $move:ident |$( $arg:pat => $type:ty, $t:ident $u:ty,)*| ($s:ident $($ss:ident)*) |$arg_:pat, $( $tail:tt )*) => { Fn!(@args [$($env,)*] $move |$($arg => $type,$t $u,)* $arg_ => _, $s $s,| ($($ss)*) | $( $tail )*) };
+	(@args [$( $env:ident ,)* ] $move:ident |$( $arg:pat => $type:ty, $t:ident $u:ty,)*| ($s:ident $($ss:ident)*) |&mut $arg_:ident: $type_:ty, $( $tail:tt )*) => { Fn!(@args [$($env,)*] $move |$($arg => $type,$t $u,)* &mut $arg_ => $type_, $s &mut $s,| ($($ss)*) | $( $tail )*) };
+	(@args [$( $env:ident ,)* ] $move:ident |$( $arg:pat => $type:ty, $t:ident $u:ty,)*| ($s:ident $($ss:ident)*) |& $arg_:ident: $type_:ty, $( $tail:tt )*) => { Fn!(@args [$($env,)*] $move |$($arg => $type,$t $u,)* & $arg_ => $type_, $s & $s,| ($($ss)*) | $( $tail )*) };
+	(@args [$( $env:ident ,)* ] $move:ident |$( $arg:pat => $type:ty, $t:ident $u:ty,)*| ($s:ident $($ss:ident)*) |$arg_:ident: &mut $type_:ty, $( $tail:tt )*) => { Fn!(@args [$($env,)*] $move |$($arg => $type,$t $u,)* $arg_ => &mut $type_, $s &mut $s,| ($($ss)*) | $( $tail )*) };
+	(@args [$( $env:ident ,)* ] $move:ident |$( $arg:pat => $type:ty, $t:ident $u:ty,)*| ($s:ident $($ss:ident)*) |$arg_:ident: & $type_:ty, $( $tail:tt )*) => { Fn!(@args [$($env,)*] $move |$($arg => $type,$t $u,)* $arg_ => & $type_, $s & $s,| ($($ss)*) | $( $tail )*) };
+	(@args [$( $env:ident ,)* ] $move:ident |$( $arg:pat => $type:ty, $t:ident $u:ty,)*| ($s:ident $($ss:ident)*) |$arg_:ident: $type_:ty, $( $tail:tt )*) => { Fn!(@args [$($env,)*] $move |$($arg => $type,$t $u,)* $arg_ => $type_, $s $s,| ($($ss)*) | $( $tail )*) };
+	(@args [$( $env:ident ,)* ] $move:ident |$( $arg:pat => $type:ty, $t:ident $u:ty,)*| ($s:ident $($ss:ident)*) |$arg_:pat=> $type_:ty, $( $tail:tt )*) => { Fn!(@args [$($env,)*] $move |$($arg => $type,$t $u,)* $arg_ => $type_, $s $s,| ($($ss)*) | $( $tail )*) };
+
+	(@args [$( $env:ident ,)* ] $move:ident |$( $arg:pat => $type:ty, $t:ident $u:ty,)*| ($s:ident $($ss:ident)*) |&mut $arg_:pat $(,)*| $( $tail:tt )*) => { Fn!(@args [$($env,)*] $move |$($arg => $type,$t $u,)* &mut $arg_ => &mut _, $s &mut $s,| ($($ss)*) || $( $tail )*) };
+	(@args [$( $env:ident ,)* ] $move:ident |$( $arg:pat => $type:ty, $t:ident $u:ty,)*| ($s:ident $($ss:ident)*) |& $arg_:pat $(,)*| $( $tail:tt )*) => { Fn!(@args [$($env,)*] $move |$($arg => $type,$t $u,)* & $arg_ => &_, $s & $s,| ($($ss)*) || $( $tail )*) };
+	(@args [$( $env:ident ,)* ] $move:ident |$( $arg:pat => $type:ty, $t:ident $u:ty,)*| ($s:ident $($ss:ident)*) |$arg_:pat $(,)*| $( $tail:tt )*) => { Fn!(@args [$($env,)*] $move |$($arg => $type,$t $u,)* $arg_ => _, $s $s,| ($($ss)*) || $( $tail )*) };
+	(@args [$( $env:ident ,)* ] $move:ident |$( $arg:pat => $type:ty, $t:ident $u:ty,)*| ($s:ident $($ss:ident)*) |&mut $arg_:ident: $type_:ty $(,)*| $( $tail:tt )*) => { Fn!(@args [$($env,)*] $move |$($arg => $type,$t $u,)* &mut $arg_ => $type_, $s &mut $s,| ($($ss)*) || $( $tail )*) };
+	(@args [$( $env:ident ,)* ] $move:ident |$( $arg:pat => $type:ty, $t:ident $u:ty,)*| ($s:ident $($ss:ident)*) |& $arg_:ident: $type_:ty $(,)*| $( $tail:tt )*) => { Fn!(@args [$($env,)*] $move |$($arg => $type,$t $u,)* & $arg_ => $type_, $s & $s,| ($($ss)*) || $( $tail )*) };
+	(@args [$( $env:ident ,)* ] $move:ident |$( $arg:pat => $type:ty, $t:ident $u:ty,)*| ($s:ident $($ss:ident)*) |$arg_:ident: &mut $type_:ty $(,)*| $( $tail:tt )*) => { Fn!(@args [$($env,)*] $move |$($arg => $type,$t $u,)* $arg_ => &mut $type_, $s &mut $s,| ($($ss)*) || $( $tail )*) };
+	(@args [$( $env:ident ,)* ] $move:ident |$( $arg:pat => $type:ty, $t:ident $u:ty,)*| ($s:ident $($ss:ident)*) |$arg_:ident: & $type_:ty $(,)*| $( $tail:tt )*) => { Fn!(@args [$($env,)*] $move |$($arg => $type,$t $u,)* $arg_ => & $type_, $s & $s,| ($($ss)*) || $( $tail )*) };
+	(@args [$( $env:ident ,)* ] $move:ident |$( $arg:pat => $type:ty, $t:ident $u:ty,)*| ($s:ident $($ss:ident)*) |$arg_:ident: $type_:ty $(,)*| $( $tail:tt )*) => { Fn!(@args [$($env,)*] $move |$($arg => $type,$t $u,)* $arg_ => $type_, $s $s,| ($($ss)*) || $( $tail )*) };
+	(@args [$( $env:ident ,)* ] $move:ident |$( $arg:pat => $type:ty, $t:ident $u:ty,)*| ($s:ident $($ss:ident)*) |$arg_:pat=> $type_:ty $(,)*| $( $tail:tt )*) => { Fn!(@args [$($env,)*] $move |$($arg => $type,$t $u,)* $arg_ => $type_, $s $s,| ($($ss)*) || $( $tail )*) };
+
+	(@args [$( $env:ident ,)* ] $move:ident |$( $arg:pat => $type:ty, $t:ident $u:ty,)*| ($($ss:ident)*) || $block:expr) => { Fn!([$($env,)*] $move |$($arg => $type,$t $u,)*| -> _ { $block } ) };
+	(@args [$( $env:ident ,)* ] $move:ident |$( $arg:pat => $type:ty, $t:ident $u:ty,)*| ($($ss:ident)*) || -> $o:ty $block:block) => { Fn!([$($env,)*] $move |$($arg => $type,$t $u,)*| -> $o $block ) };
+
+	(@args [$( $env:ident ,)* ] $move:ident |$( $arg:pat => $type:ty, $t:ident $u:ty,)*| () |$( $tail:tt )*) => { compile_error!("This macro unfortunately only handles up to 32 arguments. Easily extendable, fork and bump it if you really need that many!") };
+
+	([$( $env:ident),* $(,)* ] move | $( $tail:tt )*) => { Fn!(@args [$($env,)*] move | | (T0 T1 T2 T3 T4 T5 T6 T7 T8 T9 T10 T11 T12 T13 T14 T15 T16 T17 T18 T19 T20 T21 T22 T23 T24 T25 T26 T27 T28 T29 T30 T31 T32) | $( $tail )*) };
+	(move | $( $tail:tt )*) => { Fn!(@args [] move | | (T0 T1 T2 T3 T4 T5 T6 T7 T8 T9 T10 T11 T12 T13 T14 T15 T16 T17 T18 T19 T20 T21 T22 T23 T24 T25 T26 T27 T28 T29 T30 T31 T32) | $( $tail )*) };
+	([$( $env:ident),* $(,)* ] move || $( $tail:tt )*) => { Fn!(@args [$($env,)*] move | | (T0 T1 T2 T3 T4 T5 T6 T7 T8 T9 T10 T11 T12 T13 T14 T15 T16 T17 T18 T19 T20 T21 T22 T23 T24 T25 T26 T27 T28 T29 T30 T31 T32) || $( $tail )*) };
+	(move || $( $tail:tt )*) => { Fn!(@args [] move | | (T0 T1 T2 T3 T4 T5 T6 T7 T8 T9 T10 T11 T12 T13 T14 T15 T16 T17 T18 T19 T20 T21 T22 T23 T24 T25 T26 T27 T28 T29 T30 T31 T32) || $( $tail )*) };
+	([$( $env:ident),* $(,)* ] | $( $tail:tt )*) => { Fn!(@args [$($env,)*] ref | | (T0 T1 T2 T3 T4 T5 T6 T7 T8 T9 T10 T11 T12 T13 T14 T15 T16 T17 T18 T19 T20 T21 T22 T23 T24 T25 T26 T27 T28 T29 T30 T31 T32) | $( $tail )*) };
+	(| $( $tail:tt )*) => { Fn!(@args [] ref | | (T0 T1 T2 T3 T4 T5 T6 T7 T8 T9 T10 T11 T12 T13 T14 T15 T16 T17 T18 T19 T20 T21 T22 T23 T24 T25 T26 T27 T28 T29 T30 T31 T32) | $( $tail )*) };
+	([$( $env:ident),* $(,)* ] || $( $tail:tt )*) => { Fn!(@args [$($env,)*] ref | | (T0 T1 T2 T3 T4 T5 T6 T7 T8 T9 T10 T11 T12 T13 T14 T15 T16 T17 T18 T19 T20 T21 T22 T23 T24 T25 T26 T27 T28 T29 T30 T31 T32) || $( $tail )*) };
+	(|| $( $tail:tt )*) => { Fn!(@args [] ref | | (T0 T1 T2 T3 T4 T5 T6 T7 T8 T9 T10 T11 T12 T13 T14 T15 T16 T17 T18 T19 T20 T21 T22 T23 T24 T25 T26 T27 T28 T29 T30 T31 T32) || $( $tail )*) };
 }
 
 #[cfg(test)]
 mod tests {
+	#![cfg_attr(
+		feature = "cargo-clippy",
+		allow(items_after_statements, type_complexity)
+	)]
 	use bincode;
 	use serde;
 	use serde_json;
-	use std::{env, fmt, mem, ops, process, str};
+	use std::{env, fmt, mem, process, str};
 	#[test]
 	fn fn_ptr_size() {
 		assert_eq!(mem::size_of::<usize>(), mem::size_of::<fn()>());
@@ -848,7 +855,7 @@ mod tests {
 	#[test]
 	fn fnonce() {
 		fn test<
-			F: ops::FnOnce(usize, &usize, &mut usize, String, &String, &mut String) -> String
+			F: FnOnce(usize, &usize, &mut usize, String, &String, &mut String) -> String
 				+ serde::ser::Serialize
 				+ serde::de::DeserializeOwned
 				+ PartialEq
@@ -909,13 +916,13 @@ mod tests {
 			test(deserialized);
 			test(deserialized2);
 		}
-		let (a, b) = (3usize, String::from("qwerty"));
-		let a = FnOnce!([a,b] move |c:_,d:&_,e:&mut _,f:String,g:&String,h:&mut String| -> String {
+		let (a, b) = (3_usize, String::from("qwerty"));
+		let a = FnOnce!([a,b] move |c,d:&_,e:&mut _,f:String,g:&String,h:&mut String| -> String {
 			let a: usize = a;
 			let b: String = b;
 			*e += a+c+*d;
 			// *a += *e;
-			*h += ((b.clone()+f.as_str()+g.as_str())).as_str();
+			*h += (b.clone()+f.as_str()+g.as_str()).as_str();
 			// *b += h.as_str();
 			format!("{}{}{}{}{}{}{}{}", a, b, c, d, e, f, g, h)
 		});
@@ -923,7 +930,7 @@ mod tests {
 		let b = FnOnce!(|a| {
 			println!("{:?}", a);
 		});
-		b(0usize);
+		b(0_usize);
 		let c = FnOnce!(|arg: String| {
 			println!("{}", arg);
 		});
@@ -932,7 +939,7 @@ mod tests {
 	#[test]
 	fn fnmut() {
 		fn test<
-			F: ops::FnMut(usize, &usize, &mut usize, String, &String, &mut String) -> String
+			F: FnMut(usize, &usize, &mut usize, String, &String, &mut String) -> String
 				+ serde::ser::Serialize
 				+ serde::de::DeserializeOwned
 				+ PartialEq
@@ -977,12 +984,11 @@ mod tests {
 			assert_eq!(deserialized, deserialized2);
 			assert_eq!(f, deserialized2);
 		}
-		let (a, b) = (3usize, String::from("qwerty"));
-		let a = FnMut!([a,b] move |c:_,d:&_,e:&mut _,f:String,g:&String,h:&mut String| -> String {
-			let b: &mut String = b;
+		let (a, b) = (3_usize, String::from("qwerty"));
+		let a = FnMut!([a,b] move |c,d:&_,e:&mut _,f:String,g:&String,h:&mut String| -> String {
 			*e += *a+c+*d;
 			*a += *e;
-			*h += ((b.clone()+f.as_str()+g.as_str())).as_str();
+			*h += (b.clone()+f.as_str()+g.as_str()).as_str();
 			*b += h.as_str();
 			format!("{}{}{}{}{}{}{}{}", a, b, c, d, e, f, g, h)
 		});
@@ -1000,8 +1006,8 @@ mod tests {
 			_f: F,
 			_state: St,
 		}
-		unfold(0usize, FnMut!(|acc: &mut _| Some(*acc)));
-		let x = 123usize;
+		let _ = unfold(0_usize, FnMut!(|acc: &mut _| Some(*acc)));
+		let x = 123_usize;
 		let c = FnMut!([x] move|arg:String|{
 			println!("{} {}", x, arg);
 		});
@@ -1010,7 +1016,8 @@ mod tests {
 	#[test]
 	fn fnref() {
 		fn test<
-			F: ops::Fn(usize, &usize, &mut usize, String, &String, &mut String) -> String
+			F: Fn(usize, &usize, &mut usize, &usize, &mut usize, String, &String, &mut String)
+					-> String
 				+ serde::ser::Serialize
 				+ serde::de::DeserializeOwned
 				+ PartialEq
@@ -1030,11 +1037,14 @@ mod tests {
 			let test = |f: &mut F| {
 				let mut a = 3;
 				let mut b = String::from("ghi");
+				let mut x = 11;
 				assert_eq!(
 					f(
 						1,
 						&2,
 						&mut a,
+						&10,
+						&mut x,
 						String::from("abc"),
 						&String::from("def"),
 						&mut b
@@ -1043,11 +1053,14 @@ mod tests {
 				);
 				a += 6;
 				b += "pqr";
+				x += 13;
 				assert_eq!(
 					f(
 						4,
 						&5,
 						&mut a,
+						&12,
+						&mut x,
 						String::from("jkl"),
 						&String::from("mno"),
 						&mut b
@@ -1056,11 +1069,14 @@ mod tests {
 				);
 				a += 9;
 				b += "yz";
+				x += 15;
 				assert_eq!(
 					f(
 						7,
 						&8,
 						&mut a,
+						&14,
+						&mut x,
 						String::from("stu"),
 						&String::from("vwx"),
 						&mut b
@@ -1075,16 +1091,36 @@ mod tests {
 			assert_eq!(deserialized, deserialized2);
 			assert_eq!(f, deserialized2);
 		}
-		let (a, b) = (3usize, String::from("qwerty"));
-		let a = Fn!([a,b] move |c:_,d:&_,e:&mut _,f:String,g:&String,h:&mut String| -> String {
-			let b: &String = b;
+		let (a, b) = (3_usize, String::from("qwerty"));
+		{
+			assert_eq!(
+				Fn!([a,b] |c:usize,d:&usize,e:&mut usize,&_x:&usize,&mut _y:&mut usize,f:String,g:&String,h:&mut String| -> String {
+				*e += *a+c+*d;
+				// *a += *e;
+				*h += (b.clone()+f.as_str()+g.as_str()).as_str();
+				// *b += h.as_str();
+				format!("{}{}{}{}{}{}{}{}", a, b, c, d, e, f, g, h)
+			})(
+					0,
+					&1,
+					&mut 2,
+					&3,
+					&mut 4,
+					String::from("a"),
+					&String::from("b"),
+					&mut String::from("c")
+				),
+				"3qwerty016abcqwertyab"
+			);
+		}
+		let x = Fn!([a,b] move |c,d:&_,e:&mut _,&_x,&mut _y,f:String,g:&String,h:&mut String| -> String {
 			*e += *a+c+*d;
 			// *a += *e;
-			*h += ((b.clone()+f.as_str()+g.as_str())).as_str();
+			*h += (b.clone()+f.as_str()+g.as_str()).as_str();
 			// *b += h.as_str();
 			format!("{}{}{}{}{}{}{}{}", a, b, c, d, e, f, g, h)
 		});
-		test(a);
+		test(x);
 		fn unfold<A, St, F>(initial_state: St, f: F) -> Unfold<St, F>
 		where
 			F: Fn(&mut St) -> Option<A> + serde::ser::Serialize,
@@ -1098,11 +1134,14 @@ mod tests {
 			_f: F,
 			_state: St,
 		}
-		unfold(0usize, Fn!(|acc: &mut _| Some(*acc)));
-		let x = 123usize;
-		let c = Fn!([x] move|arg:String|{
+		let _ = unfold(0_usize, Fn!(|acc: &mut _| Some(*acc)));
+		let x = 123_usize;
+		let c = unsafe {
+			// to check unused_unsafe in macro
+			Fn!([x] move|arg:String|{
 			println!("{} {}", x, arg);
-		});
+		})
+		};
 		let _ = (c, c);
 	}
 	#[test]
@@ -1139,7 +1178,7 @@ mod tests {
 			println!("success_token_serdeclosure {:?}", f);
 			return;
 		}
-		let (a, b) = (3usize, String::from("qwerty"));
+		let (a, b) = (3_usize, String::from("qwerty"));
 		let a: super::FnMut<
 			(usize, String),
 			for<'r, 's, 't0, 't1, 't2> fn(
@@ -1153,11 +1192,10 @@ mod tests {
 					&'t2 mut String,
 				),
 			) -> String,
-		> = FnMut!([a,b] move |c:_,d:&_,e:&mut _,f:String,g:&String,h:&mut String| -> String {
-			let b: &mut String = b;
+		> = FnMut!([a,b] move |c,d:&_,e:&mut _,f:String,g:&String,h:&mut String| -> String {
 			*e += *a+c+*d;
 			*a += *e;
-			*h += ((b.clone()+f.as_str()+g.as_str())).as_str();
+			*h += (b.clone()+f.as_str()+g.as_str()).as_str();
 			*b += h.as_str();
 			format!("{}{}{}{}{}{}{}{}", a, b, c, d, e, f, g, h)
 		});
@@ -1169,12 +1207,12 @@ mod tests {
 				.env(
 					"SPAWNED_TOKEN_SERDECLOSURE",
 					serde_json::to_string(&a).unwrap(),
-				)
-				.output()
+				).output()
 				.unwrap();
 			if !str::from_utf8(&output.stdout)
 				.unwrap()
-				.contains("success_token_serdeclosure") || !output.status.success()
+				.contains("success_token_serdeclosure")
+				|| !output.status.success()
 			{
 				panic!("{}: {:?}", i, output);
 			}
