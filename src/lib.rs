@@ -144,7 +144,7 @@
 //! let hello = String::from("hello");
 //! let mut world = String::new();
 //! # (
-//! FnMut!([hello,world] move |name| {
+//! FnMut!([hello, world] move |name| {
 //! 	*world += (hello.to_uppercase() + name).as_str();
 //! })
 //! # )("abc");
@@ -164,7 +164,7 @@
 //! ```
 //! means that `my_var` is a captured variable, but was not explicitly listed.
 
-#![doc(html_root_url = "https://docs.rs/serde_closure/0.1.2")]
+#![doc(html_root_url = "https://docs.rs/serde_closure/0.1.3")]
 #![feature(unboxed_closures, fn_traits, core_intrinsics)]
 #![warn(
 	missing_copy_implementations,
@@ -653,13 +653,13 @@ macro_rules! FnOnce {
 
 	(@args [$( $env:ident ,)* ] $move:ident |$( $arg:pat => $type:ty, $t:ident $u:ty,)*| () |$( $tail:tt )*) => { compile_error!("This macro unfortunately only handles up to 32 arguments. Easily extendable, fork and bump it if you really need that many!") };
 
-	([$( $env:ident),* $(,)* ] move | $( $tail:tt )*) => { FnOnce!(@args [$($env,)*] move | | (T0 T1 T2 T3 T4 T5 T6 T7 T8 T9 T10 T11 T12 T13 T14 T15 T16 T17 T18 T19 T20 T21 T22 T23 T24 T25 T26 T27 T28 T29 T30 T31 T32) | $( $tail )*) };
+	([$( $env:ident ),* $(,)* ] move | $( $tail:tt )*) => { FnOnce!(@args [$($env,)*] move | | (T0 T1 T2 T3 T4 T5 T6 T7 T8 T9 T10 T11 T12 T13 T14 T15 T16 T17 T18 T19 T20 T21 T22 T23 T24 T25 T26 T27 T28 T29 T30 T31 T32) | $( $tail )*) };
 	(move | $( $tail:tt )*) => { FnOnce!(@args [] move | | (T0 T1 T2 T3 T4 T5 T6 T7 T8 T9 T10 T11 T12 T13 T14 T15 T16 T17 T18 T19 T20 T21 T22 T23 T24 T25 T26 T27 T28 T29 T30 T31 T32) | $( $tail )*) };
-	([$( $env:ident),* $(,)* ] move || $( $tail:tt )*) => { FnOnce!(@args [$($env,)*] move | | (T0 T1 T2 T3 T4 T5 T6 T7 T8 T9 T10 T11 T12 T13 T14 T15 T16 T17 T18 T19 T20 T21 T22 T23 T24 T25 T26 T27 T28 T29 T30 T31 T32) || $( $tail )*) };
+	([$( $env:ident ),* $(,)* ] move || $( $tail:tt )*) => { FnOnce!(@args [$($env,)*] move | | (T0 T1 T2 T3 T4 T5 T6 T7 T8 T9 T10 T11 T12 T13 T14 T15 T16 T17 T18 T19 T20 T21 T22 T23 T24 T25 T26 T27 T28 T29 T30 T31 T32) || $( $tail )*) };
 	(move || $( $tail:tt )*) => { FnOnce!(@args [] move | | (T0 T1 T2 T3 T4 T5 T6 T7 T8 T9 T10 T11 T12 T13 T14 T15 T16 T17 T18 T19 T20 T21 T22 T23 T24 T25 T26 T27 T28 T29 T30 T31 T32) || $( $tail )*) };
-	([$( $env:ident),* $(,)* ] | $( $tail:tt )*) => { FnOnce!(@args [$($env,)*] ref | | (T0 T1 T2 T3 T4 T5 T6 T7 T8 T9 T10 T11 T12 T13 T14 T15 T16 T17 T18 T19 T20 T21 T22 T23 T24 T25 T26 T27 T28 T29 T30 T31 T32) | $( $tail )*) };
+	([$( $env:ident ),* $(,)* ] | $( $tail:tt )*) => { FnOnce!(@args [$($env,)*] ref | | (T0 T1 T2 T3 T4 T5 T6 T7 T8 T9 T10 T11 T12 T13 T14 T15 T16 T17 T18 T19 T20 T21 T22 T23 T24 T25 T26 T27 T28 T29 T30 T31 T32) | $( $tail )*) };
 	(| $( $tail:tt )*) => { FnOnce!(@args [] ref | | (T0 T1 T2 T3 T4 T5 T6 T7 T8 T9 T10 T11 T12 T13 T14 T15 T16 T17 T18 T19 T20 T21 T22 T23 T24 T25 T26 T27 T28 T29 T30 T31 T32) | $( $tail )*) };
-	([$( $env:ident),* $(,)* ] || $( $tail:tt )*) => { FnOnce!(@args [$($env,)*] ref | | (T0 T1 T2 T3 T4 T5 T6 T7 T8 T9 T10 T11 T12 T13 T14 T15 T16 T17 T18 T19 T20 T21 T22 T23 T24 T25 T26 T27 T28 T29 T30 T31 T32) || $( $tail )*) };
+	([$( $env:ident ),* $(,)* ] || $( $tail:tt )*) => { FnOnce!(@args [$($env,)*] ref | | (T0 T1 T2 T3 T4 T5 T6 T7 T8 T9 T10 T11 T12 T13 T14 T15 T16 T17 T18 T19 T20 T21 T22 T23 T24 T25 T26 T27 T28 T29 T30 T31 T32) || $( $tail )*) };
 	(|| $( $tail:tt )*) => { FnOnce!(@args [] ref | | (T0 T1 T2 T3 T4 T5 T6 T7 T8 T9 T10 T11 T12 T13 T14 T15 T16 T17 T18 T19 T20 T21 T22 T23 T24 T25 T26 T27 T28 T29 T30 T31 T32) || $( $tail )*) };
 }
 
@@ -741,13 +741,13 @@ macro_rules! FnMut {
 
 	(@args [$( $env:ident ,)* ] $move:ident |$( $arg:pat => $type:ty, $t:ident $u:ty,)*| () |$( $tail:tt )*) => { compile_error!("This macro unfortunately only handles up to 32 arguments. Easily extendable, fork and bump it if you really need that many!") };
 
-	([$( $env:ident),* $(,)* ] move | $( $tail:tt )*) => { FnMut!(@args [$($env,)*] move | | (T0 T1 T2 T3 T4 T5 T6 T7 T8 T9 T10 T11 T12 T13 T14 T15 T16 T17 T18 T19 T20 T21 T22 T23 T24 T25 T26 T27 T28 T29 T30 T31 T32) | $( $tail )*) };
+	([$( $env:ident ),* $(,)* ] move | $( $tail:tt )*) => { FnMut!(@args [$($env,)*] move | | (T0 T1 T2 T3 T4 T5 T6 T7 T8 T9 T10 T11 T12 T13 T14 T15 T16 T17 T18 T19 T20 T21 T22 T23 T24 T25 T26 T27 T28 T29 T30 T31 T32) | $( $tail )*) };
 	(move | $( $tail:tt )*) => { FnMut!(@args [] move | | (T0 T1 T2 T3 T4 T5 T6 T7 T8 T9 T10 T11 T12 T13 T14 T15 T16 T17 T18 T19 T20 T21 T22 T23 T24 T25 T26 T27 T28 T29 T30 T31 T32) | $( $tail )*) };
-	([$( $env:ident),* $(,)* ] move || $( $tail:tt )*) => { FnMut!(@args [$($env,)*] move | | (T0 T1 T2 T3 T4 T5 T6 T7 T8 T9 T10 T11 T12 T13 T14 T15 T16 T17 T18 T19 T20 T21 T22 T23 T24 T25 T26 T27 T28 T29 T30 T31 T32) || $( $tail )*) };
+	([$( $env:ident ),* $(,)* ] move || $( $tail:tt )*) => { FnMut!(@args [$($env,)*] move | | (T0 T1 T2 T3 T4 T5 T6 T7 T8 T9 T10 T11 T12 T13 T14 T15 T16 T17 T18 T19 T20 T21 T22 T23 T24 T25 T26 T27 T28 T29 T30 T31 T32) || $( $tail )*) };
 	(move || $( $tail:tt )*) => { FnMut!(@args [] move | | (T0 T1 T2 T3 T4 T5 T6 T7 T8 T9 T10 T11 T12 T13 T14 T15 T16 T17 T18 T19 T20 T21 T22 T23 T24 T25 T26 T27 T28 T29 T30 T31 T32) || $( $tail )*) };
-	([$( $env:ident),* $(,)* ] | $( $tail:tt )*) => { FnMut!(@args [$($env,)*] ref | | (T0 T1 T2 T3 T4 T5 T6 T7 T8 T9 T10 T11 T12 T13 T14 T15 T16 T17 T18 T19 T20 T21 T22 T23 T24 T25 T26 T27 T28 T29 T30 T31 T32) | $( $tail )*) };
+	([$( $env:ident ),* $(,)* ] | $( $tail:tt )*) => { FnMut!(@args [$($env,)*] ref | | (T0 T1 T2 T3 T4 T5 T6 T7 T8 T9 T10 T11 T12 T13 T14 T15 T16 T17 T18 T19 T20 T21 T22 T23 T24 T25 T26 T27 T28 T29 T30 T31 T32) | $( $tail )*) };
 	(| $( $tail:tt )*) => { FnMut!(@args [] ref | | (T0 T1 T2 T3 T4 T5 T6 T7 T8 T9 T10 T11 T12 T13 T14 T15 T16 T17 T18 T19 T20 T21 T22 T23 T24 T25 T26 T27 T28 T29 T30 T31 T32) | $( $tail )*) };
-	([$( $env:ident),* $(,)* ] || $( $tail:tt )*) => { FnMut!(@args [$($env,)*] ref | | (T0 T1 T2 T3 T4 T5 T6 T7 T8 T9 T10 T11 T12 T13 T14 T15 T16 T17 T18 T19 T20 T21 T22 T23 T24 T25 T26 T27 T28 T29 T30 T31 T32) || $( $tail )*) };
+	([$( $env:ident ),* $(,)* ] || $( $tail:tt )*) => { FnMut!(@args [$($env,)*] ref | | (T0 T1 T2 T3 T4 T5 T6 T7 T8 T9 T10 T11 T12 T13 T14 T15 T16 T17 T18 T19 T20 T21 T22 T23 T24 T25 T26 T27 T28 T29 T30 T31 T32) || $( $tail )*) };
 	(|| $( $tail:tt )*) => { FnMut!(@args [] ref | | (T0 T1 T2 T3 T4 T5 T6 T7 T8 T9 T10 T11 T12 T13 T14 T15 T16 T17 T18 T19 T20 T21 T22 T23 T24 T25 T26 T27 T28 T29 T30 T31 T32) || $( $tail )*) };
 }
 
@@ -828,13 +828,13 @@ macro_rules! Fn {
 
 	(@args [$( $env:ident ,)* ] $move:ident |$( $arg:pat => $type:ty, $t:ident $u:ty,)*| () |$( $tail:tt )*) => { compile_error!("This macro unfortunately only handles up to 32 arguments. Easily extendable, fork and bump it if you really need that many!") };
 
-	([$( $env:ident),* $(,)* ] move | $( $tail:tt )*) => { Fn!(@args [$($env,)*] move | | (T0 T1 T2 T3 T4 T5 T6 T7 T8 T9 T10 T11 T12 T13 T14 T15 T16 T17 T18 T19 T20 T21 T22 T23 T24 T25 T26 T27 T28 T29 T30 T31 T32) | $( $tail )*) };
+	([$( $env:ident ),* $(,)* ] move | $( $tail:tt )*) => { Fn!(@args [$($env,)*] move | | (T0 T1 T2 T3 T4 T5 T6 T7 T8 T9 T10 T11 T12 T13 T14 T15 T16 T17 T18 T19 T20 T21 T22 T23 T24 T25 T26 T27 T28 T29 T30 T31 T32) | $( $tail )*) };
 	(move | $( $tail:tt )*) => { Fn!(@args [] move | | (T0 T1 T2 T3 T4 T5 T6 T7 T8 T9 T10 T11 T12 T13 T14 T15 T16 T17 T18 T19 T20 T21 T22 T23 T24 T25 T26 T27 T28 T29 T30 T31 T32) | $( $tail )*) };
-	([$( $env:ident),* $(,)* ] move || $( $tail:tt )*) => { Fn!(@args [$($env,)*] move | | (T0 T1 T2 T3 T4 T5 T6 T7 T8 T9 T10 T11 T12 T13 T14 T15 T16 T17 T18 T19 T20 T21 T22 T23 T24 T25 T26 T27 T28 T29 T30 T31 T32) || $( $tail )*) };
+	([$( $env:ident ),* $(,)* ] move || $( $tail:tt )*) => { Fn!(@args [$($env,)*] move | | (T0 T1 T2 T3 T4 T5 T6 T7 T8 T9 T10 T11 T12 T13 T14 T15 T16 T17 T18 T19 T20 T21 T22 T23 T24 T25 T26 T27 T28 T29 T30 T31 T32) || $( $tail )*) };
 	(move || $( $tail:tt )*) => { Fn!(@args [] move | | (T0 T1 T2 T3 T4 T5 T6 T7 T8 T9 T10 T11 T12 T13 T14 T15 T16 T17 T18 T19 T20 T21 T22 T23 T24 T25 T26 T27 T28 T29 T30 T31 T32) || $( $tail )*) };
-	([$( $env:ident),* $(,)* ] | $( $tail:tt )*) => { Fn!(@args [$($env,)*] ref | | (T0 T1 T2 T3 T4 T5 T6 T7 T8 T9 T10 T11 T12 T13 T14 T15 T16 T17 T18 T19 T20 T21 T22 T23 T24 T25 T26 T27 T28 T29 T30 T31 T32) | $( $tail )*) };
+	([$( $env:ident ),* $(,)* ] | $( $tail:tt )*) => { Fn!(@args [$($env,)*] ref | | (T0 T1 T2 T3 T4 T5 T6 T7 T8 T9 T10 T11 T12 T13 T14 T15 T16 T17 T18 T19 T20 T21 T22 T23 T24 T25 T26 T27 T28 T29 T30 T31 T32) | $( $tail )*) };
 	(| $( $tail:tt )*) => { Fn!(@args [] ref | | (T0 T1 T2 T3 T4 T5 T6 T7 T8 T9 T10 T11 T12 T13 T14 T15 T16 T17 T18 T19 T20 T21 T22 T23 T24 T25 T26 T27 T28 T29 T30 T31 T32) | $( $tail )*) };
-	([$( $env:ident),* $(,)* ] || $( $tail:tt )*) => { Fn!(@args [$($env,)*] ref | | (T0 T1 T2 T3 T4 T5 T6 T7 T8 T9 T10 T11 T12 T13 T14 T15 T16 T17 T18 T19 T20 T21 T22 T23 T24 T25 T26 T27 T28 T29 T30 T31 T32) || $( $tail )*) };
+	([$( $env:ident ),* $(,)* ] || $( $tail:tt )*) => { Fn!(@args [$($env,)*] ref | | (T0 T1 T2 T3 T4 T5 T6 T7 T8 T9 T10 T11 T12 T13 T14 T15 T16 T17 T18 T19 T20 T21 T22 T23 T24 T25 T26 T27 T28 T29 T30 T31 T32) || $( $tail )*) };
 	(|| $( $tail:tt )*) => { Fn!(@args [] ref | | (T0 T1 T2 T3 T4 T5 T6 T7 T8 T9 T10 T11 T12 T13 T14 T15 T16 T17 T18 T19 T20 T21 T22 T23 T24 T25 T26 T27 T28 T29 T30 T31 T32) || $( $tail )*) };
 }
 
