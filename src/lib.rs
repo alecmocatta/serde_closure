@@ -38,7 +38,7 @@
 //! # 	}
 //! # }
 //! # impl DistributedIterator for ! {
-//! #     type Item = !;
+//! # 	type Item = !;
 //! # }
 //! # impl<'a,T> IntoDistributedIterator for &'a [T] {
 //! # 	type Iter = IterRef<'a,T>;
@@ -175,9 +175,14 @@
 	unused_import_braces,
 	unused_qualifications,
 	unused_results,
+	clippy::pedantic
 )] // from https://github.com/rust-unofficial/patterns/blob/master/anti_patterns/deny-warnings.md
-#![cfg_attr(feature = "cargo-clippy", warn(clippy_pedantic))]
-#![cfg_attr(feature = "cargo-clippy", allow(inline_always, doc_markdown))]
+#![allow(
+	clippy::inline_always,
+	clippy::doc_markdown,
+	// clippy::fn_to_numeric,
+	// clippy::fn_to_numeric_cast_with_truncation
+)]
 
 extern crate relative;
 extern crate serde;
@@ -840,9 +845,10 @@ macro_rules! Fn {
 
 #[cfg(test)]
 mod tests {
-	#![cfg_attr(
-		feature = "cargo-clippy",
-		allow(items_after_statements, type_complexity)
+	#![allow(
+		clippy::items_after_statements,
+		clippy::type_complexity,
+		clippy::where_clauses_object_safety
 	)]
 	use bincode;
 	use serde;
@@ -1207,7 +1213,8 @@ mod tests {
 				.env(
 					"SPAWNED_TOKEN_SERDECLOSURE",
 					serde_json::to_string(&a).unwrap(),
-				).output()
+				)
+				.output()
 				.unwrap();
 			if !str::from_utf8(&output.stdout)
 				.unwrap()
