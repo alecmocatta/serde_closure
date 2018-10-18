@@ -39,7 +39,7 @@ features (rust issue [#29625](https://github.com/rust-lang/rust/issues/29625)).
  * There are currently some minor limitations of syntax over normal closure
  syntax, which are documented below.
  * The closure is coerced to a function pointer, which is wrapped by
- [relative::Pointer](https://docs.rs/relative) such that it can safely be sent
+ [relative::Code](https://docs.rs/relative) such that it can safely be sent
  between processes.
 
 ## Examples of wrapped closures
