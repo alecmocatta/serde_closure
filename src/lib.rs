@@ -164,7 +164,7 @@
 //! ```
 //! means that `my_var` is a captured variable, but was not explicitly listed.
 
-#![doc(html_root_url = "https://docs.rs/serde_closure/0.1.3")]
+#![doc(html_root_url = "https://docs.rs/serde_closure/0.1.4")]
 #![feature(unboxed_closures, fn_traits, core_intrinsics)]
 #![warn(
 	missing_copy_implementations,
