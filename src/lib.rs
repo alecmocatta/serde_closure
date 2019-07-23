@@ -170,36 +170,23 @@
 	missing_copy_implementations,
 	missing_debug_implementations,
 	missing_docs,
+	trivial_casts,
 	trivial_numeric_casts,
-	unused_extern_crates,
 	unused_import_braces,
 	unused_qualifications,
 	unused_results,
 	clippy::pedantic
 )] // from https://github.com/rust-unofficial/patterns/blob/master/anti_patterns/deny-warnings.md
-#![allow(
-	clippy::inline_always,
-	clippy::doc_markdown,
-	// clippy::fn_to_numeric,
-	// clippy::fn_to_numeric_cast_with_truncation
-)]
-
-extern crate relative;
-extern crate serde;
-#[macro_use]
-extern crate serde_derive;
-#[cfg(test)]
-extern crate bincode;
-#[cfg(test)]
-extern crate serde_json;
+#![allow(clippy::inline_always, clippy::doc_markdown)]
 
 use relative::Code;
+use serde::{Deserialize, Serialize};
 use std::{cmp, fmt, hash, intrinsics, marker, mem, ops};
 
 /// A struct representing a serializable closure, created by the
 /// [FnOnce](macro@FnOnce) macro. Implements [std::ops::FnOnce], serde's
-/// [Serialize](serde::ser::Serialize) and
-/// [Deserialize](serde::de::DeserializeOwned), and various convenience traits.
+/// [Serialize](Serialize) and
+/// [Deserialize](Deserialize), and various convenience traits.
 ///
 /// It is generic over `E`: a tuple of the environment variables passed to the
 /// [FnOnce](macro@FnOnce) macro; and `F`: the signature of closure as coerced
@@ -208,8 +195,8 @@ use std::{cmp, fmt, hash, intrinsics, marker, mem, ops};
 /// See the [readme](self) for examples.
 #[derive(Serialize, Deserialize)]
 #[serde(
-	bound(serialize = "E: serde::ser::Serialize, F: 'static"),
-	bound(deserialize = "E: serde::de::Deserialize<'de>, F: 'static")
+	bound(serialize = "E: Serialize, F: 'static"),
+	bound(deserialize = "E: Deserialize<'de>, F: 'static")
 )]
 pub struct FnOnce<E, F> {
 	env: E,
@@ -312,8 +299,8 @@ where
 
 /// A struct representing a serializable closure, created by the
 /// [FnMut](macro@FnMut) macro. Implements [std::ops::FnMut], serde's
-/// [Serialize](serde::ser::Serialize) and
-/// [Deserialize](serde::de::DeserializeOwned), and various convenience traits.
+/// [Serialize](Serialize) and
+/// [Deserialize](Deserialize), and various convenience traits.
 ///
 /// It is generic over `E`: a tuple of the environment variables passed to the
 /// [FnMut](macro@FnMut) macro; and `F`: the signature of closure as coerced to
@@ -322,8 +309,8 @@ where
 /// See the [readme](self) for examples.
 #[derive(Serialize, Deserialize)]
 #[serde(
-	bound(serialize = "E: serde::ser::Serialize, F: 'static"),
-	bound(deserialize = "E: serde::de::Deserialize<'de>, F: 'static")
+	bound(serialize = "E: Serialize, F: 'static"),
+	bound(deserialize = "E: Deserialize<'de>, F: 'static")
 )]
 pub struct FnMut<E, F> {
 	env: E,
@@ -439,8 +426,8 @@ where
 }
 
 /// A struct representing a serializable closure, created by the [Fn](macro@Fn)
-/// macro. Implements [std::ops::Fn], serde's [Serialize](serde::ser::Serialize)
-/// and [Deserialize](serde::de::DeserializeOwned), and various convenience
+/// macro. Implements [std::ops::Fn], serde's [Serialize](Serialize)
+/// and [Deserialize](Deserialize), and various convenience
 /// traits.
 ///
 /// It is generic over `E`: a tuple of the environment variables passed to the
@@ -450,8 +437,8 @@ where
 /// See the [readme](self) for examples.
 #[derive(Serialize, Deserialize)]
 #[serde(
-	bound(serialize = "E: serde::ser::Serialize, F: 'static"),
-	bound(deserialize = "E: serde::de::Deserialize<'de>, F: 'static")
+	bound(serialize = "E: Serialize, F: 'static"),
+	bound(deserialize = "E: Deserialize<'de>, F: 'static")
 )]
 pub struct Fn<E, F> {
 	env: E,
@@ -582,8 +569,8 @@ where
 
 /// Macro that wraps a closure, evaluating to a [FnOnce](struct@FnOnce) struct
 /// that implements [std::ops::FnOnce], serde's
-/// [Serialize](serde::ser::Serialize) and
-/// [Deserialize](serde::de::DeserializeOwned), and various convenience traits.
+/// [Serialize](Serialize) and
+/// [Deserialize](Deserialize), and various convenience traits.
 ///
 /// See the [readme](self) for examples.
 #[macro_export]
@@ -596,7 +583,7 @@ macro_rules! FnOnce {
 			#[allow(unreachable_code)]
 			let _: $o = closure(env,unreachable!());
 		}
-		let fn_ptr = closure as fn(_,($($ty,)*))->$o;
+		let fn_ptr: fn(_,($($ty,)*))->$o = closure;
 		if false {
 			#[allow(unreachable_code)]
 			let _: $o = fn_ptr(env,unreachable!());
@@ -618,7 +605,7 @@ macro_rules! FnOnce {
 			#[allow(unreachable_code)]
 			let _: $o = closure(env,unreachable!());
 		}
-		let fn_ptr = closure as fn(_,($($ty,)*))->$o;
+		let fn_ptr: fn(_,($($ty,)*))->$o = closure;
 		if false {
 			#[allow(unreachable_code)]
 			let _: $o = fn_ptr(env,unreachable!());
@@ -670,8 +657,8 @@ macro_rules! FnOnce {
 
 /// Macro that wraps a closure, evaluating to a [FnMut](struct@FnMut) struct
 /// that implements [std::ops::FnMut], serde's
-/// [Serialize](serde::ser::Serialize) and
-/// [Deserialize](serde::de::DeserializeOwned), and various convenience traits.
+/// [Serialize](Serialize) and
+/// [Deserialize](Deserialize), and various convenience traits.
 ///
 /// See the [readme](self) for examples.
 #[macro_export]
@@ -684,7 +671,7 @@ macro_rules! FnMut {
 			#[allow(unreachable_code)]
 			let _: $o = closure(&mut env,unreachable!());
 		}
-		let fn_ptr = closure as fn(&mut _,($($ty,)*))->$o;
+		let fn_ptr: fn(&mut _,($($ty,)*))->$o = closure;
 		if false {
 			#[allow(unreachable_code)]
 			let _: $o = fn_ptr(&mut env,unreachable!());
@@ -706,7 +693,7 @@ macro_rules! FnMut {
 			#[allow(unreachable_code)]
 			let _: $o = closure(&mut env,unreachable!());
 		}
-		let fn_ptr = closure as fn(&mut _,($($ty,)*))->$o;
+		let fn_ptr: fn(&mut _,($($ty,)*))->$o = closure;
 		if false {
 			#[allow(unreachable_code)]
 			let _: $o = fn_ptr(&mut env,unreachable!());
@@ -757,8 +744,8 @@ macro_rules! FnMut {
 }
 
 /// Macro that wraps a closure, evaluating to a [Fn](struct@Fn) struct that
-/// implements [std::ops::Fn], serde's [Serialize](serde::ser::Serialize) and
-/// [Deserialize](serde::de::DeserializeOwned), and various convenience traits.
+/// implements [std::ops::Fn], serde's [Serialize](Serialize) and
+/// [Deserialize](Deserialize), and various convenience traits.
 ///
 /// See the [readme](self) for examples.
 #[macro_export]
@@ -771,7 +758,7 @@ macro_rules! Fn {
 			#[allow(unreachable_code)]
 			let _: $o = closure(&env,unreachable!());
 		}
-		let fn_ptr = closure as fn(&_,($($ty,)*))->$o;
+		let fn_ptr: fn(&_,($($ty,)*))->$o = closure;
 		if false {
 			#[allow(unreachable_code)]
 			let _: $o = fn_ptr(&env,unreachable!());
@@ -793,7 +780,7 @@ macro_rules! Fn {
 			#[allow(unreachable_code)]
 			let _: $o = closure(&env,unreachable!());
 		}
-		let fn_ptr = closure as fn(&_,($($ty,)*))->$o;
+		let fn_ptr: fn(&_,($($ty,)*))->$o = closure;
 		if false {
 			#[allow(unreachable_code)]
 			let _: $o = fn_ptr(&env,unreachable!());
@@ -845,13 +832,9 @@ macro_rules! Fn {
 
 #[cfg(test)]
 mod tests {
-	#![allow(
-		clippy::items_after_statements,
-		clippy::type_complexity,
-		clippy::where_clauses_object_safety
-	)]
+	#![allow(clippy::items_after_statements, clippy::type_complexity)]
 	use bincode;
-	use serde;
+	use serde::{de::DeserializeOwned, Serialize};
 	use serde_json;
 	use std::{env, fmt, mem, process, str};
 	#[test]
@@ -862,8 +845,8 @@ mod tests {
 	fn fnonce() {
 		fn test<
 			F: FnOnce(usize, &usize, &mut usize, String, &String, &mut String) -> String
-				+ serde::ser::Serialize
-				+ serde::de::DeserializeOwned
+				+ Serialize
+				+ DeserializeOwned
 				+ PartialEq
 				+ Eq
 				+ Clone
@@ -946,8 +929,8 @@ mod tests {
 	fn fnmut() {
 		fn test<
 			F: FnMut(usize, &usize, &mut usize, String, &String, &mut String) -> String
-				+ serde::ser::Serialize
-				+ serde::de::DeserializeOwned
+				+ Serialize
+				+ DeserializeOwned
 				+ PartialEq
 				+ Eq
 				+ Clone
@@ -1001,7 +984,7 @@ mod tests {
 		test(a);
 		fn unfold<A, St, F>(initial_state: St, f: F) -> Unfold<St, F>
 		where
-			F: FnMut(&mut St) -> Option<A> + serde::ser::Serialize,
+			F: FnMut(&mut St) -> Option<A> + Serialize,
 		{
 			Unfold {
 				_f: f,
@@ -1022,10 +1005,18 @@ mod tests {
 	#[test]
 	fn fnref() {
 		fn test<
-			F: Fn(usize, &usize, &mut usize, &usize, &mut usize, String, &String, &mut String)
-					-> String
-				+ serde::ser::Serialize
-				+ serde::de::DeserializeOwned
+			F: Fn(
+					usize,
+					&usize,
+					&mut usize,
+					&usize,
+					&mut usize,
+					String,
+					&String,
+					&mut String,
+				) -> String
+				+ Serialize
+				+ DeserializeOwned
 				+ PartialEq
 				+ Eq
 				+ Clone
@@ -1101,12 +1092,12 @@ mod tests {
 		{
 			assert_eq!(
 				Fn!([a,b] |c:usize,d:&usize,e:&mut usize,&_x:&usize,&mut _y:&mut usize,f:String,g:&String,h:&mut String| -> String {
-				*e += *a+c+*d;
-				// *a += *e;
-				*h += (b.clone()+f.as_str()+g.as_str()).as_str();
-				// *b += h.as_str();
-				format!("{}{}{}{}{}{}{}{}", a, b, c, d, e, f, g, h)
-			})(
+					*e += *a+c+*d;
+					// *a += *e;
+					*h += (b.clone()+f.as_str()+g.as_str()).as_str();
+					// *b += h.as_str();
+					format!("{}{}{}{}{}{}{}{}", a, b, c, d, e, f, g, h)
+				})(
 					0,
 					&1,
 					&mut 2,
@@ -1129,7 +1120,7 @@ mod tests {
 		test(x);
 		fn unfold<A, St, F>(initial_state: St, f: F) -> Unfold<St, F>
 		where
-			F: Fn(&mut St) -> Option<A> + serde::ser::Serialize,
+			F: Fn(&mut St) -> Option<A> + Serialize,
 		{
 			Unfold {
 				_f: f,
@@ -1145,8 +1136,8 @@ mod tests {
 		let c = unsafe {
 			// to check unused_unsafe in macro
 			Fn!([x] move|arg:String|{
-			println!("{} {}", x, arg);
-		})
+				println!("{} {}", x, arg);
+			})
 		};
 		let _ = (c, c);
 	}
