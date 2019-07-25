@@ -71,8 +71,8 @@
 //! features (rust issue
 //! [#29625](https://github.com/rust-lang/rust/issues/29625)).
 //!
-//!  * There are three macros, [FnOnce](macro@FnOnce), [FnMut](macro@FnMut) and
-//! [Fn](macro@Fn), corresponding to the three types of Rust closure.
+//!  * There are three macros, [`FnOnce`](macro@FnOnce), [`FnMut`](macro@FnMut) and
+//! [`Fn`](macro@Fn), corresponding to the three types of Rust closure.
 //!  * The *captured variables*, i.e. those variables that are referenced by the
 //! closure but are declared outside of it, must be explicitly listed.
 //!  * There are currently some minor limitations of syntax over normal closure
@@ -177,19 +177,18 @@
 	unused_results,
 	clippy::pedantic
 )] // from https://github.com/rust-unofficial/patterns/blob/master/anti_patterns/deny-warnings.md
-#![allow(clippy::inline_always, clippy::doc_markdown)]
+#![allow(clippy::inline_always)]
 
 use relative::Code;
 use serde::{Deserialize, Serialize};
 use std::{cmp, fmt, hash, intrinsics, marker, mem, ops};
 
 /// A struct representing a serializable closure, created by the
-/// [FnOnce](macro@FnOnce) macro. Implements [std::ops::FnOnce], serde's
-/// [Serialize](Serialize) and
-/// [Deserialize](Deserialize), and various convenience traits.
+/// [`FnOnce`](macro@FnOnce) macro. Implements [`std::ops::FnOnce`], serde's [`Serialize`] and
+/// [`Deserialize`], and various convenience traits.
 ///
 /// It is generic over `E`: a tuple of the environment variables passed to the
-/// [FnOnce](macro@FnOnce) macro; and `F`: the signature of closure as coerced
+/// [`FnOnce`](macro@FnOnce) macro; and `F`: the signature of closure as coerced
 /// to a function pointer.
 ///
 /// See the [readme](self) for examples.
@@ -298,12 +297,11 @@ where
 }
 
 /// A struct representing a serializable closure, created by the
-/// [FnMut](macro@FnMut) macro. Implements [std::ops::FnMut], serde's
-/// [Serialize](Serialize) and
-/// [Deserialize](Deserialize), and various convenience traits.
+/// [`FnMut`](macro@FnMut) macro. Implements [`std::ops::FnMut`], serde's [`Serialize`] and
+/// [`Deserialize`], and various convenience traits.
 ///
 /// It is generic over `E`: a tuple of the environment variables passed to the
-/// [FnMut](macro@FnMut) macro; and `F`: the signature of closure as coerced to
+/// [`FnMut`](macro@FnMut) macro; and `F`: the signature of closure as coerced to
 /// a function pointer.
 ///
 /// See the [readme](self) for examples.
@@ -425,13 +423,13 @@ where
 	}
 }
 
-/// A struct representing a serializable closure, created by the [Fn](macro@Fn)
-/// macro. Implements [std::ops::Fn], serde's [Serialize](Serialize)
-/// and [Deserialize](Deserialize), and various convenience
+/// A struct representing a serializable closure, created by the [`Fn`](macro@Fn)
+/// macro. Implements [`std::ops::Fn`], serde's [`Serialize`]
+/// and [`Deserialize`], and various convenience
 /// traits.
 ///
 /// It is generic over `E`: a tuple of the environment variables passed to the
-/// [Fn](macro@Fn) macro; and `F`: the signature of closure as coerced to a
+/// [`Fn`](macro@Fn) macro; and `F`: the signature of closure as coerced to a
 /// function pointer.
 ///
 /// See the [readme](self) for examples.
@@ -567,10 +565,9 @@ where
 	}
 }
 
-/// Macro that wraps a closure, evaluating to a [FnOnce](struct@FnOnce) struct
-/// that implements [std::ops::FnOnce], serde's
-/// [Serialize](Serialize) and
-/// [Deserialize](Deserialize), and various convenience traits.
+/// Macro that wraps a closure, evaluating to a [`FnOnce`](struct@FnOnce) struct
+/// that implements [`std::ops::FnOnce`], serde's [`Serialize`] and
+/// [`Deserialize`], and various convenience traits.
 ///
 /// See the [readme](self) for examples.
 #[macro_export]
@@ -620,45 +617,44 @@ macro_rules! FnOnce {
 		}
 	});
 
-	(@args [$( $env:ident ,)* ] $move:ident |$( $arg:pat => $type:ty, $t:ident $u:ty,)*| ($s:ident $($ss:ident)*) |&mut $arg_:pat, $( $tail:tt )*) => { FnOnce!(@args [$($env,)*] $move |$($arg => $type,$t $u,)* &mut $arg_ => &mut _, $s &mut $s,| ($($ss)*) | $( $tail )*) };
-	(@args [$( $env:ident ,)* ] $move:ident |$( $arg:pat => $type:ty, $t:ident $u:ty,)*| ($s:ident $($ss:ident)*) |& $arg_:pat, $( $tail:tt )*) => { FnOnce!(@args [$($env,)*] $move |$($arg => $type,$t $u,)* & $arg_ => &_, $s & $s,| ($($ss)*) | $( $tail )*) };
-	(@args [$( $env:ident ,)* ] $move:ident |$( $arg:pat => $type:ty, $t:ident $u:ty,)*| ($s:ident $($ss:ident)*) |$arg_:pat, $( $tail:tt )*) => { FnOnce!(@args [$($env,)*] $move |$($arg => $type,$t $u,)* $arg_ => _, $s $s,| ($($ss)*) | $( $tail )*) };
-	(@args [$( $env:ident ,)* ] $move:ident |$( $arg:pat => $type:ty, $t:ident $u:ty,)*| ($s:ident $($ss:ident)*) |&mut $arg_:ident: $type_:ty, $( $tail:tt )*) => { FnOnce!(@args [$($env,)*] $move |$($arg => $type,$t $u,)* &mut $arg_ => $type_, $s &mut $s,| ($($ss)*) | $( $tail )*) };
-	(@args [$( $env:ident ,)* ] $move:ident |$( $arg:pat => $type:ty, $t:ident $u:ty,)*| ($s:ident $($ss:ident)*) |& $arg_:ident: $type_:ty, $( $tail:tt )*) => { FnOnce!(@args [$($env,)*] $move |$($arg => $type,$t $u,)* & $arg_ => $type_, $s & $s,| ($($ss)*) | $( $tail )*) };
-	(@args [$( $env:ident ,)* ] $move:ident |$( $arg:pat => $type:ty, $t:ident $u:ty,)*| ($s:ident $($ss:ident)*) |$arg_:ident: &mut $type_:ty, $( $tail:tt )*) => { FnOnce!(@args [$($env,)*] $move |$($arg => $type,$t $u,)* $arg_ => &mut $type_, $s &mut $s,| ($($ss)*) | $( $tail )*) };
-	(@args [$( $env:ident ,)* ] $move:ident |$( $arg:pat => $type:ty, $t:ident $u:ty,)*| ($s:ident $($ss:ident)*) |$arg_:ident: & $type_:ty, $( $tail:tt )*) => { FnOnce!(@args [$($env,)*] $move |$($arg => $type,$t $u,)* $arg_ => & $type_, $s & $s,| ($($ss)*) | $( $tail )*) };
-	(@args [$( $env:ident ,)* ] $move:ident |$( $arg:pat => $type:ty, $t:ident $u:ty,)*| ($s:ident $($ss:ident)*) |$arg_:ident: $type_:ty, $( $tail:tt )*) => { FnOnce!(@args [$($env,)*] $move |$($arg => $type,$t $u,)* $arg_ => $type_, $s $s,| ($($ss)*) | $( $tail )*) };
-	(@args [$( $env:ident ,)* ] $move:ident |$( $arg:pat => $type:ty, $t:ident $u:ty,)*| ($s:ident $($ss:ident)*) |$arg_:pat=> $type_:ty, $( $tail:tt )*) => { FnOnce!(@args [$($env,)*] $move |$($arg => $type,$t $u,)* $arg_ => $type_, $s $s,| ($($ss)*) | $( $tail )*) };
+	(@args [$( $env:ident ,)* ] $move:ident |$( $arg:pat => $type:ty, $t:ident $u:ty,)*| ($s:ident $($ss:ident)*) |&mut $arg_:pat, $( $tail:tt )*) => { $crate::FnOnce!(@args [$($env,)*] $move |$($arg => $type,$t $u,)* &mut $arg_ => &mut _, $s &mut $s,| ($($ss)*) | $( $tail )*) };
+	(@args [$( $env:ident ,)* ] $move:ident |$( $arg:pat => $type:ty, $t:ident $u:ty,)*| ($s:ident $($ss:ident)*) |& $arg_:pat, $( $tail:tt )*) => { $crate::FnOnce!(@args [$($env,)*] $move |$($arg => $type,$t $u,)* & $arg_ => &_, $s & $s,| ($($ss)*) | $( $tail )*) };
+	(@args [$( $env:ident ,)* ] $move:ident |$( $arg:pat => $type:ty, $t:ident $u:ty,)*| ($s:ident $($ss:ident)*) |$arg_:pat, $( $tail:tt )*) => { $crate::FnOnce!(@args [$($env,)*] $move |$($arg => $type,$t $u,)* $arg_ => _, $s $s,| ($($ss)*) | $( $tail )*) };
+	(@args [$( $env:ident ,)* ] $move:ident |$( $arg:pat => $type:ty, $t:ident $u:ty,)*| ($s:ident $($ss:ident)*) |&mut $arg_:ident: $type_:ty, $( $tail:tt )*) => { $crate::FnOnce!(@args [$($env,)*] $move |$($arg => $type,$t $u,)* &mut $arg_ => $type_, $s &mut $s,| ($($ss)*) | $( $tail )*) };
+	(@args [$( $env:ident ,)* ] $move:ident |$( $arg:pat => $type:ty, $t:ident $u:ty,)*| ($s:ident $($ss:ident)*) |& $arg_:ident: $type_:ty, $( $tail:tt )*) => { $crate::FnOnce!(@args [$($env,)*] $move |$($arg => $type,$t $u,)* & $arg_ => $type_, $s & $s,| ($($ss)*) | $( $tail )*) };
+	(@args [$( $env:ident ,)* ] $move:ident |$( $arg:pat => $type:ty, $t:ident $u:ty,)*| ($s:ident $($ss:ident)*) |$arg_:ident: &mut $type_:ty, $( $tail:tt )*) => { $crate::FnOnce!(@args [$($env,)*] $move |$($arg => $type,$t $u,)* $arg_ => &mut $type_, $s &mut $s,| ($($ss)*) | $( $tail )*) };
+	(@args [$( $env:ident ,)* ] $move:ident |$( $arg:pat => $type:ty, $t:ident $u:ty,)*| ($s:ident $($ss:ident)*) |$arg_:ident: & $type_:ty, $( $tail:tt )*) => { $crate::FnOnce!(@args [$($env,)*] $move |$($arg => $type,$t $u,)* $arg_ => & $type_, $s & $s,| ($($ss)*) | $( $tail )*) };
+	(@args [$( $env:ident ,)* ] $move:ident |$( $arg:pat => $type:ty, $t:ident $u:ty,)*| ($s:ident $($ss:ident)*) |$arg_:ident: $type_:ty, $( $tail:tt )*) => { $crate::FnOnce!(@args [$($env,)*] $move |$($arg => $type,$t $u,)* $arg_ => $type_, $s $s,| ($($ss)*) | $( $tail )*) };
+	(@args [$( $env:ident ,)* ] $move:ident |$( $arg:pat => $type:ty, $t:ident $u:ty,)*| ($s:ident $($ss:ident)*) |$arg_:pat=> $type_:ty, $( $tail:tt )*) => { $crate::FnOnce!(@args [$($env,)*] $move |$($arg => $type,$t $u,)* $arg_ => $type_, $s $s,| ($($ss)*) | $( $tail )*) };
 
-	(@args [$( $env:ident ,)* ] $move:ident |$( $arg:pat => $type:ty, $t:ident $u:ty,)*| ($s:ident $($ss:ident)*) |&mut $arg_:pat $(,)*| $( $tail:tt )*) => { FnOnce!(@args [$($env,)*] $move |$($arg => $type,$t $u,)* &mut $arg_ => &mut _, $s &mut $s,| ($($ss)*) || $( $tail )*) };
-	(@args [$( $env:ident ,)* ] $move:ident |$( $arg:pat => $type:ty, $t:ident $u:ty,)*| ($s:ident $($ss:ident)*) |& $arg_:pat $(,)*| $( $tail:tt )*) => { FnOnce!(@args [$($env,)*] $move |$($arg => $type,$t $u,)* & $arg_ => &_, $s & $s,| ($($ss)*) || $( $tail )*) };
-	(@args [$( $env:ident ,)* ] $move:ident |$( $arg:pat => $type:ty, $t:ident $u:ty,)*| ($s:ident $($ss:ident)*) |$arg_:pat $(,)*| $( $tail:tt )*) => { FnOnce!(@args [$($env,)*] $move |$($arg => $type,$t $u,)* $arg_ => _, $s $s,| ($($ss)*) || $( $tail )*) };
-	(@args [$( $env:ident ,)* ] $move:ident |$( $arg:pat => $type:ty, $t:ident $u:ty,)*| ($s:ident $($ss:ident)*) |&mut $arg_:ident: $type_:ty $(,)*| $( $tail:tt )*) => { FnOnce!(@args [$($env,)*] $move |$($arg => $type,$t $u,)* &mut $arg_ => $type_, $s &mut $s,| ($($ss)*) || $( $tail )*) };
-	(@args [$( $env:ident ,)* ] $move:ident |$( $arg:pat => $type:ty, $t:ident $u:ty,)*| ($s:ident $($ss:ident)*) |& $arg_:ident: $type_:ty $(,)*| $( $tail:tt )*) => { FnOnce!(@args [$($env,)*] $move |$($arg => $type,$t $u,)* & $arg_ => $type_, $s & $s,| ($($ss)*) || $( $tail )*) };
-	(@args [$( $env:ident ,)* ] $move:ident |$( $arg:pat => $type:ty, $t:ident $u:ty,)*| ($s:ident $($ss:ident)*) |$arg_:ident: &mut $type_:ty $(,)*| $( $tail:tt )*) => { FnOnce!(@args [$($env,)*] $move |$($arg => $type,$t $u,)* $arg_ => &mut $type_, $s &mut $s,| ($($ss)*) || $( $tail )*) };
-	(@args [$( $env:ident ,)* ] $move:ident |$( $arg:pat => $type:ty, $t:ident $u:ty,)*| ($s:ident $($ss:ident)*) |$arg_:ident: & $type_:ty $(,)*| $( $tail:tt )*) => { FnOnce!(@args [$($env,)*] $move |$($arg => $type,$t $u,)* $arg_ => & $type_, $s & $s,| ($($ss)*) || $( $tail )*) };
-	(@args [$( $env:ident ,)* ] $move:ident |$( $arg:pat => $type:ty, $t:ident $u:ty,)*| ($s:ident $($ss:ident)*) |$arg_:ident: $type_:ty $(,)*| $( $tail:tt )*) => { FnOnce!(@args [$($env,)*] $move |$($arg => $type,$t $u,)* $arg_ => $type_, $s $s,| ($($ss)*) || $( $tail )*) };
-	(@args [$( $env:ident ,)* ] $move:ident |$( $arg:pat => $type:ty, $t:ident $u:ty,)*| ($s:ident $($ss:ident)*) |$arg_:pat=> $type_:ty $(,)*| $( $tail:tt )*) => { FnOnce!(@args [$($env,)*] $move |$($arg => $type,$t $u,)* $arg_ => $type_, $s $s,| ($($ss)*) || $( $tail )*) };
+	(@args [$( $env:ident ,)* ] $move:ident |$( $arg:pat => $type:ty, $t:ident $u:ty,)*| ($s:ident $($ss:ident)*) |&mut $arg_:pat $(,)*| $( $tail:tt )*) => { $crate::FnOnce!(@args [$($env,)*] $move |$($arg => $type,$t $u,)* &mut $arg_ => &mut _, $s &mut $s,| ($($ss)*) || $( $tail )*) };
+	(@args [$( $env:ident ,)* ] $move:ident |$( $arg:pat => $type:ty, $t:ident $u:ty,)*| ($s:ident $($ss:ident)*) |& $arg_:pat $(,)*| $( $tail:tt )*) => { $crate::FnOnce!(@args [$($env,)*] $move |$($arg => $type,$t $u,)* & $arg_ => &_, $s & $s,| ($($ss)*) || $( $tail )*) };
+	(@args [$( $env:ident ,)* ] $move:ident |$( $arg:pat => $type:ty, $t:ident $u:ty,)*| ($s:ident $($ss:ident)*) |$arg_:pat $(,)*| $( $tail:tt )*) => { $crate::FnOnce!(@args [$($env,)*] $move |$($arg => $type,$t $u,)* $arg_ => _, $s $s,| ($($ss)*) || $( $tail )*) };
+	(@args [$( $env:ident ,)* ] $move:ident |$( $arg:pat => $type:ty, $t:ident $u:ty,)*| ($s:ident $($ss:ident)*) |&mut $arg_:ident: $type_:ty $(,)*| $( $tail:tt )*) => { $crate::FnOnce!(@args [$($env,)*] $move |$($arg => $type,$t $u,)* &mut $arg_ => $type_, $s &mut $s,| ($($ss)*) || $( $tail )*) };
+	(@args [$( $env:ident ,)* ] $move:ident |$( $arg:pat => $type:ty, $t:ident $u:ty,)*| ($s:ident $($ss:ident)*) |& $arg_:ident: $type_:ty $(,)*| $( $tail:tt )*) => { $crate::FnOnce!(@args [$($env,)*] $move |$($arg => $type,$t $u,)* & $arg_ => $type_, $s & $s,| ($($ss)*) || $( $tail )*) };
+	(@args [$( $env:ident ,)* ] $move:ident |$( $arg:pat => $type:ty, $t:ident $u:ty,)*| ($s:ident $($ss:ident)*) |$arg_:ident: &mut $type_:ty $(,)*| $( $tail:tt )*) => { $crate::FnOnce!(@args [$($env,)*] $move |$($arg => $type,$t $u,)* $arg_ => &mut $type_, $s &mut $s,| ($($ss)*) || $( $tail )*) };
+	(@args [$( $env:ident ,)* ] $move:ident |$( $arg:pat => $type:ty, $t:ident $u:ty,)*| ($s:ident $($ss:ident)*) |$arg_:ident: & $type_:ty $(,)*| $( $tail:tt )*) => { $crate::FnOnce!(@args [$($env,)*] $move |$($arg => $type,$t $u,)* $arg_ => & $type_, $s & $s,| ($($ss)*) || $( $tail )*) };
+	(@args [$( $env:ident ,)* ] $move:ident |$( $arg:pat => $type:ty, $t:ident $u:ty,)*| ($s:ident $($ss:ident)*) |$arg_:ident: $type_:ty $(,)*| $( $tail:tt )*) => { $crate::FnOnce!(@args [$($env,)*] $move |$($arg => $type,$t $u,)* $arg_ => $type_, $s $s,| ($($ss)*) || $( $tail )*) };
+	(@args [$( $env:ident ,)* ] $move:ident |$( $arg:pat => $type:ty, $t:ident $u:ty,)*| ($s:ident $($ss:ident)*) |$arg_:pat=> $type_:ty $(,)*| $( $tail:tt )*) => { $crate::FnOnce!(@args [$($env,)*] $move |$($arg => $type,$t $u,)* $arg_ => $type_, $s $s,| ($($ss)*) || $( $tail )*) };
 
-	(@args [$( $env:ident ,)* ] $move:ident |$( $arg:pat => $type:ty, $t:ident $u:ty,)*| ($($ss:ident)*) || $block:expr) => { FnOnce!([$($env,)*] $move |$($arg => $type,$t $u,)*| -> _ { $block } ) };
-	(@args [$( $env:ident ,)* ] $move:ident |$( $arg:pat => $type:ty, $t:ident $u:ty,)*| ($($ss:ident)*) || -> $o:ty $block:block) => { FnOnce!([$($env,)*] $move |$($arg => $type,$t $u,)*| -> $o $block ) };
+	(@args [$( $env:ident ,)* ] $move:ident |$( $arg:pat => $type:ty, $t:ident $u:ty,)*| ($($ss:ident)*) || $block:expr) => { $crate::FnOnce!([$($env,)*] $move |$($arg => $type,$t $u,)*| -> _ { $block } ) };
+	(@args [$( $env:ident ,)* ] $move:ident |$( $arg:pat => $type:ty, $t:ident $u:ty,)*| ($($ss:ident)*) || -> $o:ty $block:block) => { $crate::FnOnce!([$($env,)*] $move |$($arg => $type,$t $u,)*| -> $o $block ) };
 
 	(@args [$( $env:ident ,)* ] $move:ident |$( $arg:pat => $type:ty, $t:ident $u:ty,)*| () |$( $tail:tt )*) => { compile_error!("This macro unfortunately only handles up to 32 arguments. Easily extendable, fork and bump it if you really need that many!") };
 
-	([$( $env:ident ),* $(,)* ] move | $( $tail:tt )*) => { FnOnce!(@args [$($env,)*] move | | (T0 T1 T2 T3 T4 T5 T6 T7 T8 T9 T10 T11 T12 T13 T14 T15 T16 T17 T18 T19 T20 T21 T22 T23 T24 T25 T26 T27 T28 T29 T30 T31 T32) | $( $tail )*) };
-	(move | $( $tail:tt )*) => { FnOnce!(@args [] move | | (T0 T1 T2 T3 T4 T5 T6 T7 T8 T9 T10 T11 T12 T13 T14 T15 T16 T17 T18 T19 T20 T21 T22 T23 T24 T25 T26 T27 T28 T29 T30 T31 T32) | $( $tail )*) };
-	([$( $env:ident ),* $(,)* ] move || $( $tail:tt )*) => { FnOnce!(@args [$($env,)*] move | | (T0 T1 T2 T3 T4 T5 T6 T7 T8 T9 T10 T11 T12 T13 T14 T15 T16 T17 T18 T19 T20 T21 T22 T23 T24 T25 T26 T27 T28 T29 T30 T31 T32) || $( $tail )*) };
-	(move || $( $tail:tt )*) => { FnOnce!(@args [] move | | (T0 T1 T2 T3 T4 T5 T6 T7 T8 T9 T10 T11 T12 T13 T14 T15 T16 T17 T18 T19 T20 T21 T22 T23 T24 T25 T26 T27 T28 T29 T30 T31 T32) || $( $tail )*) };
-	([$( $env:ident ),* $(,)* ] | $( $tail:tt )*) => { FnOnce!(@args [$($env,)*] ref | | (T0 T1 T2 T3 T4 T5 T6 T7 T8 T9 T10 T11 T12 T13 T14 T15 T16 T17 T18 T19 T20 T21 T22 T23 T24 T25 T26 T27 T28 T29 T30 T31 T32) | $( $tail )*) };
-	(| $( $tail:tt )*) => { FnOnce!(@args [] ref | | (T0 T1 T2 T3 T4 T5 T6 T7 T8 T9 T10 T11 T12 T13 T14 T15 T16 T17 T18 T19 T20 T21 T22 T23 T24 T25 T26 T27 T28 T29 T30 T31 T32) | $( $tail )*) };
-	([$( $env:ident ),* $(,)* ] || $( $tail:tt )*) => { FnOnce!(@args [$($env,)*] ref | | (T0 T1 T2 T3 T4 T5 T6 T7 T8 T9 T10 T11 T12 T13 T14 T15 T16 T17 T18 T19 T20 T21 T22 T23 T24 T25 T26 T27 T28 T29 T30 T31 T32) || $( $tail )*) };
-	(|| $( $tail:tt )*) => { FnOnce!(@args [] ref | | (T0 T1 T2 T3 T4 T5 T6 T7 T8 T9 T10 T11 T12 T13 T14 T15 T16 T17 T18 T19 T20 T21 T22 T23 T24 T25 T26 T27 T28 T29 T30 T31 T32) || $( $tail )*) };
+	([$( $env:ident ),* $(,)* ] move | $( $tail:tt )*) => { $crate::FnOnce!(@args [$($env,)*] move | | (T0 T1 T2 T3 T4 T5 T6 T7 T8 T9 T10 T11 T12 T13 T14 T15 T16 T17 T18 T19 T20 T21 T22 T23 T24 T25 T26 T27 T28 T29 T30 T31 T32) | $( $tail )*) };
+	(move | $( $tail:tt )*) => { $crate::FnOnce!(@args [] move | | (T0 T1 T2 T3 T4 T5 T6 T7 T8 T9 T10 T11 T12 T13 T14 T15 T16 T17 T18 T19 T20 T21 T22 T23 T24 T25 T26 T27 T28 T29 T30 T31 T32) | $( $tail )*) };
+	([$( $env:ident ),* $(,)* ] move || $( $tail:tt )*) => { $crate::FnOnce!(@args [$($env,)*] move | | (T0 T1 T2 T3 T4 T5 T6 T7 T8 T9 T10 T11 T12 T13 T14 T15 T16 T17 T18 T19 T20 T21 T22 T23 T24 T25 T26 T27 T28 T29 T30 T31 T32) || $( $tail )*) };
+	(move || $( $tail:tt )*) => { $crate::FnOnce!(@args [] move | | (T0 T1 T2 T3 T4 T5 T6 T7 T8 T9 T10 T11 T12 T13 T14 T15 T16 T17 T18 T19 T20 T21 T22 T23 T24 T25 T26 T27 T28 T29 T30 T31 T32) || $( $tail )*) };
+	([$( $env:ident ),* $(,)* ] | $( $tail:tt )*) => { $crate::FnOnce!(@args [$($env,)*] ref | | (T0 T1 T2 T3 T4 T5 T6 T7 T8 T9 T10 T11 T12 T13 T14 T15 T16 T17 T18 T19 T20 T21 T22 T23 T24 T25 T26 T27 T28 T29 T30 T31 T32) | $( $tail )*) };
+	(| $( $tail:tt )*) => { $crate::FnOnce!(@args [] ref | | (T0 T1 T2 T3 T4 T5 T6 T7 T8 T9 T10 T11 T12 T13 T14 T15 T16 T17 T18 T19 T20 T21 T22 T23 T24 T25 T26 T27 T28 T29 T30 T31 T32) | $( $tail )*) };
+	([$( $env:ident ),* $(,)* ] || $( $tail:tt )*) => { $crate::FnOnce!(@args [$($env,)*] ref | | (T0 T1 T2 T3 T4 T5 T6 T7 T8 T9 T10 T11 T12 T13 T14 T15 T16 T17 T18 T19 T20 T21 T22 T23 T24 T25 T26 T27 T28 T29 T30 T31 T32) || $( $tail )*) };
+	(|| $( $tail:tt )*) => { $crate::FnOnce!(@args [] ref | | (T0 T1 T2 T3 T4 T5 T6 T7 T8 T9 T10 T11 T12 T13 T14 T15 T16 T17 T18 T19 T20 T21 T22 T23 T24 T25 T26 T27 T28 T29 T30 T31 T32) || $( $tail )*) };
 }
 
-/// Macro that wraps a closure, evaluating to a [FnMut](struct@FnMut) struct
-/// that implements [std::ops::FnMut], serde's
-/// [Serialize](Serialize) and
-/// [Deserialize](Deserialize), and various convenience traits.
+/// Macro that wraps a closure, evaluating to a [`FnMut`](struct@FnMut) struct
+/// that implements [`std::ops::FnMut`], serde's [`Serialize`] and
+/// [`Deserialize`], and various convenience traits.
 ///
 /// See the [readme](self) for examples.
 #[macro_export]
@@ -708,44 +704,44 @@ macro_rules! FnMut {
 		}
 	});
 
-	(@args [$( $env:ident ,)* ] $move:ident |$( $arg:pat => $type:ty, $t:ident $u:ty,)*| ($s:ident $($ss:ident)*) |&mut $arg_:pat, $( $tail:tt )*) => { FnMut!(@args [$($env,)*] $move |$($arg => $type,$t $u,)* &mut $arg_ => &mut _, $s &mut $s,| ($($ss)*) | $( $tail )*) };
-	(@args [$( $env:ident ,)* ] $move:ident |$( $arg:pat => $type:ty, $t:ident $u:ty,)*| ($s:ident $($ss:ident)*) |& $arg_:pat, $( $tail:tt )*) => { FnMut!(@args [$($env,)*] $move |$($arg => $type,$t $u,)* & $arg_ => &_, $s & $s,| ($($ss)*) | $( $tail )*) };
-	(@args [$( $env:ident ,)* ] $move:ident |$( $arg:pat => $type:ty, $t:ident $u:ty,)*| ($s:ident $($ss:ident)*) |$arg_:pat, $( $tail:tt )*) => { FnMut!(@args [$($env,)*] $move |$($arg => $type,$t $u,)* $arg_ => _, $s $s,| ($($ss)*) | $( $tail )*) };
-	(@args [$( $env:ident ,)* ] $move:ident |$( $arg:pat => $type:ty, $t:ident $u:ty,)*| ($s:ident $($ss:ident)*) |&mut $arg_:ident: $type_:ty, $( $tail:tt )*) => { FnMut!(@args [$($env,)*] $move |$($arg => $type,$t $u,)* &mut $arg_ => $type_, $s &mut $s,| ($($ss)*) | $( $tail )*) };
-	(@args [$( $env:ident ,)* ] $move:ident |$( $arg:pat => $type:ty, $t:ident $u:ty,)*| ($s:ident $($ss:ident)*) |& $arg_:ident: $type_:ty, $( $tail:tt )*) => { FnMut!(@args [$($env,)*] $move |$($arg => $type,$t $u,)* & $arg_ => $type_, $s & $s,| ($($ss)*) | $( $tail )*) };
-	(@args [$( $env:ident ,)* ] $move:ident |$( $arg:pat => $type:ty, $t:ident $u:ty,)*| ($s:ident $($ss:ident)*) |$arg_:ident: &mut $type_:ty, $( $tail:tt )*) => { FnMut!(@args [$($env,)*] $move |$($arg => $type,$t $u,)* $arg_ => &mut $type_, $s &mut $s,| ($($ss)*) | $( $tail )*) };
-	(@args [$( $env:ident ,)* ] $move:ident |$( $arg:pat => $type:ty, $t:ident $u:ty,)*| ($s:ident $($ss:ident)*) |$arg_:ident: & $type_:ty, $( $tail:tt )*) => { FnMut!(@args [$($env,)*] $move |$($arg => $type,$t $u,)* $arg_ => & $type_, $s & $s,| ($($ss)*) | $( $tail )*) };
-	(@args [$( $env:ident ,)* ] $move:ident |$( $arg:pat => $type:ty, $t:ident $u:ty,)*| ($s:ident $($ss:ident)*) |$arg_:ident: $type_:ty, $( $tail:tt )*) => { FnMut!(@args [$($env,)*] $move |$($arg => $type,$t $u,)* $arg_ => $type_, $s $s,| ($($ss)*) | $( $tail )*) };
-	(@args [$( $env:ident ,)* ] $move:ident |$( $arg:pat => $type:ty, $t:ident $u:ty,)*| ($s:ident $($ss:ident)*) |$arg_:pat=> $type_:ty, $( $tail:tt )*) => { FnMut!(@args [$($env,)*] $move |$($arg => $type,$t $u,)* $arg_ => $type_, $s $s,| ($($ss)*) | $( $tail )*) };
+	(@args [$( $env:ident ,)* ] $move:ident |$( $arg:pat => $type:ty, $t:ident $u:ty,)*| ($s:ident $($ss:ident)*) |&mut $arg_:pat, $( $tail:tt )*) => { $crate::FnMut!(@args [$($env,)*] $move |$($arg => $type,$t $u,)* &mut $arg_ => &mut _, $s &mut $s,| ($($ss)*) | $( $tail )*) };
+	(@args [$( $env:ident ,)* ] $move:ident |$( $arg:pat => $type:ty, $t:ident $u:ty,)*| ($s:ident $($ss:ident)*) |& $arg_:pat, $( $tail:tt )*) => { $crate::FnMut!(@args [$($env,)*] $move |$($arg => $type,$t $u,)* & $arg_ => &_, $s & $s,| ($($ss)*) | $( $tail )*) };
+	(@args [$( $env:ident ,)* ] $move:ident |$( $arg:pat => $type:ty, $t:ident $u:ty,)*| ($s:ident $($ss:ident)*) |$arg_:pat, $( $tail:tt )*) => { $crate::FnMut!(@args [$($env,)*] $move |$($arg => $type,$t $u,)* $arg_ => _, $s $s,| ($($ss)*) | $( $tail )*) };
+	(@args [$( $env:ident ,)* ] $move:ident |$( $arg:pat => $type:ty, $t:ident $u:ty,)*| ($s:ident $($ss:ident)*) |&mut $arg_:ident: $type_:ty, $( $tail:tt )*) => { $crate::FnMut!(@args [$($env,)*] $move |$($arg => $type,$t $u,)* &mut $arg_ => $type_, $s &mut $s,| ($($ss)*) | $( $tail )*) };
+	(@args [$( $env:ident ,)* ] $move:ident |$( $arg:pat => $type:ty, $t:ident $u:ty,)*| ($s:ident $($ss:ident)*) |& $arg_:ident: $type_:ty, $( $tail:tt )*) => { $crate::FnMut!(@args [$($env,)*] $move |$($arg => $type,$t $u,)* & $arg_ => $type_, $s & $s,| ($($ss)*) | $( $tail )*) };
+	(@args [$( $env:ident ,)* ] $move:ident |$( $arg:pat => $type:ty, $t:ident $u:ty,)*| ($s:ident $($ss:ident)*) |$arg_:ident: &mut $type_:ty, $( $tail:tt )*) => { $crate::FnMut!(@args [$($env,)*] $move |$($arg => $type,$t $u,)* $arg_ => &mut $type_, $s &mut $s,| ($($ss)*) | $( $tail )*) };
+	(@args [$( $env:ident ,)* ] $move:ident |$( $arg:pat => $type:ty, $t:ident $u:ty,)*| ($s:ident $($ss:ident)*) |$arg_:ident: & $type_:ty, $( $tail:tt )*) => { $crate::FnMut!(@args [$($env,)*] $move |$($arg => $type,$t $u,)* $arg_ => & $type_, $s & $s,| ($($ss)*) | $( $tail )*) };
+	(@args [$( $env:ident ,)* ] $move:ident |$( $arg:pat => $type:ty, $t:ident $u:ty,)*| ($s:ident $($ss:ident)*) |$arg_:ident: $type_:ty, $( $tail:tt )*) => { $crate::FnMut!(@args [$($env,)*] $move |$($arg => $type,$t $u,)* $arg_ => $type_, $s $s,| ($($ss)*) | $( $tail )*) };
+	(@args [$( $env:ident ,)* ] $move:ident |$( $arg:pat => $type:ty, $t:ident $u:ty,)*| ($s:ident $($ss:ident)*) |$arg_:pat=> $type_:ty, $( $tail:tt )*) => { $crate::FnMut!(@args [$($env,)*] $move |$($arg => $type,$t $u,)* $arg_ => $type_, $s $s,| ($($ss)*) | $( $tail )*) };
 
-	(@args [$( $env:ident ,)* ] $move:ident |$( $arg:pat => $type:ty, $t:ident $u:ty,)*| ($s:ident $($ss:ident)*) |&mut $arg_:pat $(,)*| $( $tail:tt )*) => { FnMut!(@args [$($env,)*] $move |$($arg => $type,$t $u,)* &mut $arg_ => &mut _, $s &mut $s,| ($($ss)*) || $( $tail )*) };
-	(@args [$( $env:ident ,)* ] $move:ident |$( $arg:pat => $type:ty, $t:ident $u:ty,)*| ($s:ident $($ss:ident)*) |& $arg_:pat $(,)*| $( $tail:tt )*) => { FnMut!(@args [$($env,)*] $move |$($arg => $type,$t $u,)* & $arg_ => &_, $s & $s,| ($($ss)*) || $( $tail )*) };
-	(@args [$( $env:ident ,)* ] $move:ident |$( $arg:pat => $type:ty, $t:ident $u:ty,)*| ($s:ident $($ss:ident)*) |$arg_:pat $(,)*| $( $tail:tt )*) => { FnMut!(@args [$($env,)*] $move |$($arg => $type,$t $u,)* $arg_ => _, $s $s,| ($($ss)*) || $( $tail )*) };
-	(@args [$( $env:ident ,)* ] $move:ident |$( $arg:pat => $type:ty, $t:ident $u:ty,)*| ($s:ident $($ss:ident)*) |&mut $arg_:ident: $type_:ty $(,)*| $( $tail:tt )*) => { FnMut!(@args [$($env,)*] $move |$($arg => $type,$t $u,)* &mut $arg_ => $type_, $s &mut $s,| ($($ss)*) || $( $tail )*) };
-	(@args [$( $env:ident ,)* ] $move:ident |$( $arg:pat => $type:ty, $t:ident $u:ty,)*| ($s:ident $($ss:ident)*) |& $arg_:ident: $type_:ty $(,)*| $( $tail:tt )*) => { FnMut!(@args [$($env,)*] $move |$($arg => $type,$t $u,)* & $arg_ => $type_, $s & $s,| ($($ss)*) || $( $tail )*) };
-	(@args [$( $env:ident ,)* ] $move:ident |$( $arg:pat => $type:ty, $t:ident $u:ty,)*| ($s:ident $($ss:ident)*) |$arg_:ident: &mut $type_:ty $(,)*| $( $tail:tt )*) => { FnMut!(@args [$($env,)*] $move |$($arg => $type,$t $u,)* $arg_ => &mut $type_, $s &mut $s,| ($($ss)*) || $( $tail )*) };
-	(@args [$( $env:ident ,)* ] $move:ident |$( $arg:pat => $type:ty, $t:ident $u:ty,)*| ($s:ident $($ss:ident)*) |$arg_:ident: & $type_:ty $(,)*| $( $tail:tt )*) => { FnMut!(@args [$($env,)*] $move |$($arg => $type,$t $u,)* $arg_ => & $type_, $s & $s,| ($($ss)*) || $( $tail )*) };
-	(@args [$( $env:ident ,)* ] $move:ident |$( $arg:pat => $type:ty, $t:ident $u:ty,)*| ($s:ident $($ss:ident)*) |$arg_:ident: $type_:ty $(,)*| $( $tail:tt )*) => { FnMut!(@args [$($env,)*] $move |$($arg => $type,$t $u,)* $arg_ => $type_, $s $s,| ($($ss)*) || $( $tail )*) };
-	(@args [$( $env:ident ,)* ] $move:ident |$( $arg:pat => $type:ty, $t:ident $u:ty,)*| ($s:ident $($ss:ident)*) |$arg_:pat=> $type_:ty $(,)*| $( $tail:tt )*) => { FnMut!(@args [$($env,)*] $move |$($arg => $type,$t $u,)* $arg_ => $type_, $s $s,| ($($ss)*) || $( $tail )*) };
+	(@args [$( $env:ident ,)* ] $move:ident |$( $arg:pat => $type:ty, $t:ident $u:ty,)*| ($s:ident $($ss:ident)*) |&mut $arg_:pat $(,)*| $( $tail:tt )*) => { $crate::FnMut!(@args [$($env,)*] $move |$($arg => $type,$t $u,)* &mut $arg_ => &mut _, $s &mut $s,| ($($ss)*) || $( $tail )*) };
+	(@args [$( $env:ident ,)* ] $move:ident |$( $arg:pat => $type:ty, $t:ident $u:ty,)*| ($s:ident $($ss:ident)*) |& $arg_:pat $(,)*| $( $tail:tt )*) => { $crate::FnMut!(@args [$($env,)*] $move |$($arg => $type,$t $u,)* & $arg_ => &_, $s & $s,| ($($ss)*) || $( $tail )*) };
+	(@args [$( $env:ident ,)* ] $move:ident |$( $arg:pat => $type:ty, $t:ident $u:ty,)*| ($s:ident $($ss:ident)*) |$arg_:pat $(,)*| $( $tail:tt )*) => { $crate::FnMut!(@args [$($env,)*] $move |$($arg => $type,$t $u,)* $arg_ => _, $s $s,| ($($ss)*) || $( $tail )*) };
+	(@args [$( $env:ident ,)* ] $move:ident |$( $arg:pat => $type:ty, $t:ident $u:ty,)*| ($s:ident $($ss:ident)*) |&mut $arg_:ident: $type_:ty $(,)*| $( $tail:tt )*) => { $crate::FnMut!(@args [$($env,)*] $move |$($arg => $type,$t $u,)* &mut $arg_ => $type_, $s &mut $s,| ($($ss)*) || $( $tail )*) };
+	(@args [$( $env:ident ,)* ] $move:ident |$( $arg:pat => $type:ty, $t:ident $u:ty,)*| ($s:ident $($ss:ident)*) |& $arg_:ident: $type_:ty $(,)*| $( $tail:tt )*) => { $crate::FnMut!(@args [$($env,)*] $move |$($arg => $type,$t $u,)* & $arg_ => $type_, $s & $s,| ($($ss)*) || $( $tail )*) };
+	(@args [$( $env:ident ,)* ] $move:ident |$( $arg:pat => $type:ty, $t:ident $u:ty,)*| ($s:ident $($ss:ident)*) |$arg_:ident: &mut $type_:ty $(,)*| $( $tail:tt )*) => { $crate::FnMut!(@args [$($env,)*] $move |$($arg => $type,$t $u,)* $arg_ => &mut $type_, $s &mut $s,| ($($ss)*) || $( $tail )*) };
+	(@args [$( $env:ident ,)* ] $move:ident |$( $arg:pat => $type:ty, $t:ident $u:ty,)*| ($s:ident $($ss:ident)*) |$arg_:ident: & $type_:ty $(,)*| $( $tail:tt )*) => { $crate::FnMut!(@args [$($env,)*] $move |$($arg => $type,$t $u,)* $arg_ => & $type_, $s & $s,| ($($ss)*) || $( $tail )*) };
+	(@args [$( $env:ident ,)* ] $move:ident |$( $arg:pat => $type:ty, $t:ident $u:ty,)*| ($s:ident $($ss:ident)*) |$arg_:ident: $type_:ty $(,)*| $( $tail:tt )*) => { $crate::FnMut!(@args [$($env,)*] $move |$($arg => $type,$t $u,)* $arg_ => $type_, $s $s,| ($($ss)*) || $( $tail )*) };
+	(@args [$( $env:ident ,)* ] $move:ident |$( $arg:pat => $type:ty, $t:ident $u:ty,)*| ($s:ident $($ss:ident)*) |$arg_:pat=> $type_:ty $(,)*| $( $tail:tt )*) => { $crate::FnMut!(@args [$($env,)*] $move |$($arg => $type,$t $u,)* $arg_ => $type_, $s $s,| ($($ss)*) || $( $tail )*) };
 
-	(@args [$( $env:ident ,)* ] $move:ident |$( $arg:pat => $type:ty, $t:ident $u:ty,)*| ($($ss:ident)*) || $block:expr) => { FnMut!([$($env,)*] $move |$($arg => $type,$t $u,)*| -> _ { $block } ) };
-	(@args [$( $env:ident ,)* ] $move:ident |$( $arg:pat => $type:ty, $t:ident $u:ty,)*| ($($ss:ident)*) || -> $o:ty $block:block) => { FnMut!([$($env,)*] $move |$($arg => $type,$t $u,)*| -> $o $block ) };
+	(@args [$( $env:ident ,)* ] $move:ident |$( $arg:pat => $type:ty, $t:ident $u:ty,)*| ($($ss:ident)*) || $block:expr) => { $crate::FnMut!([$($env,)*] $move |$($arg => $type,$t $u,)*| -> _ { $block } ) };
+	(@args [$( $env:ident ,)* ] $move:ident |$( $arg:pat => $type:ty, $t:ident $u:ty,)*| ($($ss:ident)*) || -> $o:ty $block:block) => { $crate::FnMut!([$($env,)*] $move |$($arg => $type,$t $u,)*| -> $o $block ) };
 
 	(@args [$( $env:ident ,)* ] $move:ident |$( $arg:pat => $type:ty, $t:ident $u:ty,)*| () |$( $tail:tt )*) => { compile_error!("This macro unfortunately only handles up to 32 arguments. Easily extendable, fork and bump it if you really need that many!") };
 
-	([$( $env:ident ),* $(,)* ] move | $( $tail:tt )*) => { FnMut!(@args [$($env,)*] move | | (T0 T1 T2 T3 T4 T5 T6 T7 T8 T9 T10 T11 T12 T13 T14 T15 T16 T17 T18 T19 T20 T21 T22 T23 T24 T25 T26 T27 T28 T29 T30 T31 T32) | $( $tail )*) };
-	(move | $( $tail:tt )*) => { FnMut!(@args [] move | | (T0 T1 T2 T3 T4 T5 T6 T7 T8 T9 T10 T11 T12 T13 T14 T15 T16 T17 T18 T19 T20 T21 T22 T23 T24 T25 T26 T27 T28 T29 T30 T31 T32) | $( $tail )*) };
-	([$( $env:ident ),* $(,)* ] move || $( $tail:tt )*) => { FnMut!(@args [$($env,)*] move | | (T0 T1 T2 T3 T4 T5 T6 T7 T8 T9 T10 T11 T12 T13 T14 T15 T16 T17 T18 T19 T20 T21 T22 T23 T24 T25 T26 T27 T28 T29 T30 T31 T32) || $( $tail )*) };
-	(move || $( $tail:tt )*) => { FnMut!(@args [] move | | (T0 T1 T2 T3 T4 T5 T6 T7 T8 T9 T10 T11 T12 T13 T14 T15 T16 T17 T18 T19 T20 T21 T22 T23 T24 T25 T26 T27 T28 T29 T30 T31 T32) || $( $tail )*) };
-	([$( $env:ident ),* $(,)* ] | $( $tail:tt )*) => { FnMut!(@args [$($env,)*] ref | | (T0 T1 T2 T3 T4 T5 T6 T7 T8 T9 T10 T11 T12 T13 T14 T15 T16 T17 T18 T19 T20 T21 T22 T23 T24 T25 T26 T27 T28 T29 T30 T31 T32) | $( $tail )*) };
-	(| $( $tail:tt )*) => { FnMut!(@args [] ref | | (T0 T1 T2 T3 T4 T5 T6 T7 T8 T9 T10 T11 T12 T13 T14 T15 T16 T17 T18 T19 T20 T21 T22 T23 T24 T25 T26 T27 T28 T29 T30 T31 T32) | $( $tail )*) };
-	([$( $env:ident ),* $(,)* ] || $( $tail:tt )*) => { FnMut!(@args [$($env,)*] ref | | (T0 T1 T2 T3 T4 T5 T6 T7 T8 T9 T10 T11 T12 T13 T14 T15 T16 T17 T18 T19 T20 T21 T22 T23 T24 T25 T26 T27 T28 T29 T30 T31 T32) || $( $tail )*) };
-	(|| $( $tail:tt )*) => { FnMut!(@args [] ref | | (T0 T1 T2 T3 T4 T5 T6 T7 T8 T9 T10 T11 T12 T13 T14 T15 T16 T17 T18 T19 T20 T21 T22 T23 T24 T25 T26 T27 T28 T29 T30 T31 T32) || $( $tail )*) };
+	([$( $env:ident ),* $(,)* ] move | $( $tail:tt )*) => { $crate::FnMut!(@args [$($env,)*] move | | (T0 T1 T2 T3 T4 T5 T6 T7 T8 T9 T10 T11 T12 T13 T14 T15 T16 T17 T18 T19 T20 T21 T22 T23 T24 T25 T26 T27 T28 T29 T30 T31 T32) | $( $tail )*) };
+	(move | $( $tail:tt )*) => { $crate::FnMut!(@args [] move | | (T0 T1 T2 T3 T4 T5 T6 T7 T8 T9 T10 T11 T12 T13 T14 T15 T16 T17 T18 T19 T20 T21 T22 T23 T24 T25 T26 T27 T28 T29 T30 T31 T32) | $( $tail )*) };
+	([$( $env:ident ),* $(,)* ] move || $( $tail:tt )*) => { $crate::FnMut!(@args [$($env,)*] move | | (T0 T1 T2 T3 T4 T5 T6 T7 T8 T9 T10 T11 T12 T13 T14 T15 T16 T17 T18 T19 T20 T21 T22 T23 T24 T25 T26 T27 T28 T29 T30 T31 T32) || $( $tail )*) };
+	(move || $( $tail:tt )*) => { $crate::FnMut!(@args [] move | | (T0 T1 T2 T3 T4 T5 T6 T7 T8 T9 T10 T11 T12 T13 T14 T15 T16 T17 T18 T19 T20 T21 T22 T23 T24 T25 T26 T27 T28 T29 T30 T31 T32) || $( $tail )*) };
+	([$( $env:ident ),* $(,)* ] | $( $tail:tt )*) => { $crate::FnMut!(@args [$($env,)*] ref | | (T0 T1 T2 T3 T4 T5 T6 T7 T8 T9 T10 T11 T12 T13 T14 T15 T16 T17 T18 T19 T20 T21 T22 T23 T24 T25 T26 T27 T28 T29 T30 T31 T32) | $( $tail )*) };
+	(| $( $tail:tt )*) => { $crate::FnMut!(@args [] ref | | (T0 T1 T2 T3 T4 T5 T6 T7 T8 T9 T10 T11 T12 T13 T14 T15 T16 T17 T18 T19 T20 T21 T22 T23 T24 T25 T26 T27 T28 T29 T30 T31 T32) | $( $tail )*) };
+	([$( $env:ident ),* $(,)* ] || $( $tail:tt )*) => { $crate::FnMut!(@args [$($env,)*] ref | | (T0 T1 T2 T3 T4 T5 T6 T7 T8 T9 T10 T11 T12 T13 T14 T15 T16 T17 T18 T19 T20 T21 T22 T23 T24 T25 T26 T27 T28 T29 T30 T31 T32) || $( $tail )*) };
+	(|| $( $tail:tt )*) => { $crate::FnMut!(@args [] ref | | (T0 T1 T2 T3 T4 T5 T6 T7 T8 T9 T10 T11 T12 T13 T14 T15 T16 T17 T18 T19 T20 T21 T22 T23 T24 T25 T26 T27 T28 T29 T30 T31 T32) || $( $tail )*) };
 }
 
-/// Macro that wraps a closure, evaluating to a [Fn](struct@Fn) struct that
-/// implements [std::ops::Fn], serde's [Serialize](Serialize) and
-/// [Deserialize](Deserialize), and various convenience traits.
+/// Macro that wraps a closure, evaluating to a [`Fn`](struct@Fn) struct that
+/// implements [`std::ops::Fn`], serde's [`Serialize`] and
+/// [`Deserialize`], and various convenience traits.
 ///
 /// See the [readme](self) for examples.
 #[macro_export]
@@ -795,39 +791,39 @@ macro_rules! Fn {
 		}
 	});
 
-	(@args [$( $env:ident ,)* ] $move:ident |$( $arg:pat => $type:ty, $t:ident $u:ty,)*| ($s:ident $($ss:ident)*) |&mut $arg_:pat, $( $tail:tt )*) => { Fn!(@args [$($env,)*] $move |$($arg => $type,$t $u,)* &mut $arg_ => &mut _, $s &mut $s,| ($($ss)*) | $( $tail )*) };
-	(@args [$( $env:ident ,)* ] $move:ident |$( $arg:pat => $type:ty, $t:ident $u:ty,)*| ($s:ident $($ss:ident)*) |& $arg_:pat, $( $tail:tt )*) => { Fn!(@args [$($env,)*] $move |$($arg => $type,$t $u,)* & $arg_ => &_, $s & $s,| ($($ss)*) | $( $tail )*) };
-	(@args [$( $env:ident ,)* ] $move:ident |$( $arg:pat => $type:ty, $t:ident $u:ty,)*| ($s:ident $($ss:ident)*) |$arg_:pat, $( $tail:tt )*) => { Fn!(@args [$($env,)*] $move |$($arg => $type,$t $u,)* $arg_ => _, $s $s,| ($($ss)*) | $( $tail )*) };
-	(@args [$( $env:ident ,)* ] $move:ident |$( $arg:pat => $type:ty, $t:ident $u:ty,)*| ($s:ident $($ss:ident)*) |&mut $arg_:ident: $type_:ty, $( $tail:tt )*) => { Fn!(@args [$($env,)*] $move |$($arg => $type,$t $u,)* &mut $arg_ => $type_, $s &mut $s,| ($($ss)*) | $( $tail )*) };
-	(@args [$( $env:ident ,)* ] $move:ident |$( $arg:pat => $type:ty, $t:ident $u:ty,)*| ($s:ident $($ss:ident)*) |& $arg_:ident: $type_:ty, $( $tail:tt )*) => { Fn!(@args [$($env,)*] $move |$($arg => $type,$t $u,)* & $arg_ => $type_, $s & $s,| ($($ss)*) | $( $tail )*) };
-	(@args [$( $env:ident ,)* ] $move:ident |$( $arg:pat => $type:ty, $t:ident $u:ty,)*| ($s:ident $($ss:ident)*) |$arg_:ident: &mut $type_:ty, $( $tail:tt )*) => { Fn!(@args [$($env,)*] $move |$($arg => $type,$t $u,)* $arg_ => &mut $type_, $s &mut $s,| ($($ss)*) | $( $tail )*) };
-	(@args [$( $env:ident ,)* ] $move:ident |$( $arg:pat => $type:ty, $t:ident $u:ty,)*| ($s:ident $($ss:ident)*) |$arg_:ident: & $type_:ty, $( $tail:tt )*) => { Fn!(@args [$($env,)*] $move |$($arg => $type,$t $u,)* $arg_ => & $type_, $s & $s,| ($($ss)*) | $( $tail )*) };
-	(@args [$( $env:ident ,)* ] $move:ident |$( $arg:pat => $type:ty, $t:ident $u:ty,)*| ($s:ident $($ss:ident)*) |$arg_:ident: $type_:ty, $( $tail:tt )*) => { Fn!(@args [$($env,)*] $move |$($arg => $type,$t $u,)* $arg_ => $type_, $s $s,| ($($ss)*) | $( $tail )*) };
-	(@args [$( $env:ident ,)* ] $move:ident |$( $arg:pat => $type:ty, $t:ident $u:ty,)*| ($s:ident $($ss:ident)*) |$arg_:pat=> $type_:ty, $( $tail:tt )*) => { Fn!(@args [$($env,)*] $move |$($arg => $type,$t $u,)* $arg_ => $type_, $s $s,| ($($ss)*) | $( $tail )*) };
+	(@args [$( $env:ident ,)* ] $move:ident |$( $arg:pat => $type:ty, $t:ident $u:ty,)*| ($s:ident $($ss:ident)*) |&mut $arg_:pat, $( $tail:tt )*) => { $crate::Fn!(@args [$($env,)*] $move |$($arg => $type,$t $u,)* &mut $arg_ => &mut _, $s &mut $s,| ($($ss)*) | $( $tail )*) };
+	(@args [$( $env:ident ,)* ] $move:ident |$( $arg:pat => $type:ty, $t:ident $u:ty,)*| ($s:ident $($ss:ident)*) |& $arg_:pat, $( $tail:tt )*) => { $crate::Fn!(@args [$($env,)*] $move |$($arg => $type,$t $u,)* & $arg_ => &_, $s & $s,| ($($ss)*) | $( $tail )*) };
+	(@args [$( $env:ident ,)* ] $move:ident |$( $arg:pat => $type:ty, $t:ident $u:ty,)*| ($s:ident $($ss:ident)*) |$arg_:pat, $( $tail:tt )*) => { $crate::Fn!(@args [$($env,)*] $move |$($arg => $type,$t $u,)* $arg_ => _, $s $s,| ($($ss)*) | $( $tail )*) };
+	(@args [$( $env:ident ,)* ] $move:ident |$( $arg:pat => $type:ty, $t:ident $u:ty,)*| ($s:ident $($ss:ident)*) |&mut $arg_:ident: $type_:ty, $( $tail:tt )*) => { $crate::Fn!(@args [$($env,)*] $move |$($arg => $type,$t $u,)* &mut $arg_ => $type_, $s &mut $s,| ($($ss)*) | $( $tail )*) };
+	(@args [$( $env:ident ,)* ] $move:ident |$( $arg:pat => $type:ty, $t:ident $u:ty,)*| ($s:ident $($ss:ident)*) |& $arg_:ident: $type_:ty, $( $tail:tt )*) => { $crate::Fn!(@args [$($env,)*] $move |$($arg => $type,$t $u,)* & $arg_ => $type_, $s & $s,| ($($ss)*) | $( $tail )*) };
+	(@args [$( $env:ident ,)* ] $move:ident |$( $arg:pat => $type:ty, $t:ident $u:ty,)*| ($s:ident $($ss:ident)*) |$arg_:ident: &mut $type_:ty, $( $tail:tt )*) => { $crate::Fn!(@args [$($env,)*] $move |$($arg => $type,$t $u,)* $arg_ => &mut $type_, $s &mut $s,| ($($ss)*) | $( $tail )*) };
+	(@args [$( $env:ident ,)* ] $move:ident |$( $arg:pat => $type:ty, $t:ident $u:ty,)*| ($s:ident $($ss:ident)*) |$arg_:ident: & $type_:ty, $( $tail:tt )*) => { $crate::Fn!(@args [$($env,)*] $move |$($arg => $type,$t $u,)* $arg_ => & $type_, $s & $s,| ($($ss)*) | $( $tail )*) };
+	(@args [$( $env:ident ,)* ] $move:ident |$( $arg:pat => $type:ty, $t:ident $u:ty,)*| ($s:ident $($ss:ident)*) |$arg_:ident: $type_:ty, $( $tail:tt )*) => { $crate::Fn!(@args [$($env,)*] $move |$($arg => $type,$t $u,)* $arg_ => $type_, $s $s,| ($($ss)*) | $( $tail )*) };
+	(@args [$( $env:ident ,)* ] $move:ident |$( $arg:pat => $type:ty, $t:ident $u:ty,)*| ($s:ident $($ss:ident)*) |$arg_:pat=> $type_:ty, $( $tail:tt )*) => { $crate::Fn!(@args [$($env,)*] $move |$($arg => $type,$t $u,)* $arg_ => $type_, $s $s,| ($($ss)*) | $( $tail )*) };
 
-	(@args [$( $env:ident ,)* ] $move:ident |$( $arg:pat => $type:ty, $t:ident $u:ty,)*| ($s:ident $($ss:ident)*) |&mut $arg_:pat $(,)*| $( $tail:tt )*) => { Fn!(@args [$($env,)*] $move |$($arg => $type,$t $u,)* &mut $arg_ => &mut _, $s &mut $s,| ($($ss)*) || $( $tail )*) };
-	(@args [$( $env:ident ,)* ] $move:ident |$( $arg:pat => $type:ty, $t:ident $u:ty,)*| ($s:ident $($ss:ident)*) |& $arg_:pat $(,)*| $( $tail:tt )*) => { Fn!(@args [$($env,)*] $move |$($arg => $type,$t $u,)* & $arg_ => &_, $s & $s,| ($($ss)*) || $( $tail )*) };
-	(@args [$( $env:ident ,)* ] $move:ident |$( $arg:pat => $type:ty, $t:ident $u:ty,)*| ($s:ident $($ss:ident)*) |$arg_:pat $(,)*| $( $tail:tt )*) => { Fn!(@args [$($env,)*] $move |$($arg => $type,$t $u,)* $arg_ => _, $s $s,| ($($ss)*) || $( $tail )*) };
-	(@args [$( $env:ident ,)* ] $move:ident |$( $arg:pat => $type:ty, $t:ident $u:ty,)*| ($s:ident $($ss:ident)*) |&mut $arg_:ident: $type_:ty $(,)*| $( $tail:tt )*) => { Fn!(@args [$($env,)*] $move |$($arg => $type,$t $u,)* &mut $arg_ => $type_, $s &mut $s,| ($($ss)*) || $( $tail )*) };
-	(@args [$( $env:ident ,)* ] $move:ident |$( $arg:pat => $type:ty, $t:ident $u:ty,)*| ($s:ident $($ss:ident)*) |& $arg_:ident: $type_:ty $(,)*| $( $tail:tt )*) => { Fn!(@args [$($env,)*] $move |$($arg => $type,$t $u,)* & $arg_ => $type_, $s & $s,| ($($ss)*) || $( $tail )*) };
-	(@args [$( $env:ident ,)* ] $move:ident |$( $arg:pat => $type:ty, $t:ident $u:ty,)*| ($s:ident $($ss:ident)*) |$arg_:ident: &mut $type_:ty $(,)*| $( $tail:tt )*) => { Fn!(@args [$($env,)*] $move |$($arg => $type,$t $u,)* $arg_ => &mut $type_, $s &mut $s,| ($($ss)*) || $( $tail )*) };
-	(@args [$( $env:ident ,)* ] $move:ident |$( $arg:pat => $type:ty, $t:ident $u:ty,)*| ($s:ident $($ss:ident)*) |$arg_:ident: & $type_:ty $(,)*| $( $tail:tt )*) => { Fn!(@args [$($env,)*] $move |$($arg => $type,$t $u,)* $arg_ => & $type_, $s & $s,| ($($ss)*) || $( $tail )*) };
-	(@args [$( $env:ident ,)* ] $move:ident |$( $arg:pat => $type:ty, $t:ident $u:ty,)*| ($s:ident $($ss:ident)*) |$arg_:ident: $type_:ty $(,)*| $( $tail:tt )*) => { Fn!(@args [$($env,)*] $move |$($arg => $type,$t $u,)* $arg_ => $type_, $s $s,| ($($ss)*) || $( $tail )*) };
-	(@args [$( $env:ident ,)* ] $move:ident |$( $arg:pat => $type:ty, $t:ident $u:ty,)*| ($s:ident $($ss:ident)*) |$arg_:pat=> $type_:ty $(,)*| $( $tail:tt )*) => { Fn!(@args [$($env,)*] $move |$($arg => $type,$t $u,)* $arg_ => $type_, $s $s,| ($($ss)*) || $( $tail )*) };
+	(@args [$( $env:ident ,)* ] $move:ident |$( $arg:pat => $type:ty, $t:ident $u:ty,)*| ($s:ident $($ss:ident)*) |&mut $arg_:pat $(,)*| $( $tail:tt )*) => { $crate::Fn!(@args [$($env,)*] $move |$($arg => $type,$t $u,)* &mut $arg_ => &mut _, $s &mut $s,| ($($ss)*) || $( $tail )*) };
+	(@args [$( $env:ident ,)* ] $move:ident |$( $arg:pat => $type:ty, $t:ident $u:ty,)*| ($s:ident $($ss:ident)*) |& $arg_:pat $(,)*| $( $tail:tt )*) => { $crate::Fn!(@args [$($env,)*] $move |$($arg => $type,$t $u,)* & $arg_ => &_, $s & $s,| ($($ss)*) || $( $tail )*) };
+	(@args [$( $env:ident ,)* ] $move:ident |$( $arg:pat => $type:ty, $t:ident $u:ty,)*| ($s:ident $($ss:ident)*) |$arg_:pat $(,)*| $( $tail:tt )*) => { $crate::Fn!(@args [$($env,)*] $move |$($arg => $type,$t $u,)* $arg_ => _, $s $s,| ($($ss)*) || $( $tail )*) };
+	(@args [$( $env:ident ,)* ] $move:ident |$( $arg:pat => $type:ty, $t:ident $u:ty,)*| ($s:ident $($ss:ident)*) |&mut $arg_:ident: $type_:ty $(,)*| $( $tail:tt )*) => { $crate::Fn!(@args [$($env,)*] $move |$($arg => $type,$t $u,)* &mut $arg_ => $type_, $s &mut $s,| ($($ss)*) || $( $tail )*) };
+	(@args [$( $env:ident ,)* ] $move:ident |$( $arg:pat => $type:ty, $t:ident $u:ty,)*| ($s:ident $($ss:ident)*) |& $arg_:ident: $type_:ty $(,)*| $( $tail:tt )*) => { $crate::Fn!(@args [$($env,)*] $move |$($arg => $type,$t $u,)* & $arg_ => $type_, $s & $s,| ($($ss)*) || $( $tail )*) };
+	(@args [$( $env:ident ,)* ] $move:ident |$( $arg:pat => $type:ty, $t:ident $u:ty,)*| ($s:ident $($ss:ident)*) |$arg_:ident: &mut $type_:ty $(,)*| $( $tail:tt )*) => { $crate::Fn!(@args [$($env,)*] $move |$($arg => $type,$t $u,)* $arg_ => &mut $type_, $s &mut $s,| ($($ss)*) || $( $tail )*) };
+	(@args [$( $env:ident ,)* ] $move:ident |$( $arg:pat => $type:ty, $t:ident $u:ty,)*| ($s:ident $($ss:ident)*) |$arg_:ident: & $type_:ty $(,)*| $( $tail:tt )*) => { $crate::Fn!(@args [$($env,)*] $move |$($arg => $type,$t $u,)* $arg_ => & $type_, $s & $s,| ($($ss)*) || $( $tail )*) };
+	(@args [$( $env:ident ,)* ] $move:ident |$( $arg:pat => $type:ty, $t:ident $u:ty,)*| ($s:ident $($ss:ident)*) |$arg_:ident: $type_:ty $(,)*| $( $tail:tt )*) => { $crate::Fn!(@args [$($env,)*] $move |$($arg => $type,$t $u,)* $arg_ => $type_, $s $s,| ($($ss)*) || $( $tail )*) };
+	(@args [$( $env:ident ,)* ] $move:ident |$( $arg:pat => $type:ty, $t:ident $u:ty,)*| ($s:ident $($ss:ident)*) |$arg_:pat=> $type_:ty $(,)*| $( $tail:tt )*) => { $crate::Fn!(@args [$($env,)*] $move |$($arg => $type,$t $u,)* $arg_ => $type_, $s $s,| ($($ss)*) || $( $tail )*) };
 
-	(@args [$( $env:ident ,)* ] $move:ident |$( $arg:pat => $type:ty, $t:ident $u:ty,)*| ($($ss:ident)*) || $block:expr) => { Fn!([$($env,)*] $move |$($arg => $type,$t $u,)*| -> _ { $block } ) };
-	(@args [$( $env:ident ,)* ] $move:ident |$( $arg:pat => $type:ty, $t:ident $u:ty,)*| ($($ss:ident)*) || -> $o:ty $block:block) => { Fn!([$($env,)*] $move |$($arg => $type,$t $u,)*| -> $o $block ) };
+	(@args [$( $env:ident ,)* ] $move:ident |$( $arg:pat => $type:ty, $t:ident $u:ty,)*| ($($ss:ident)*) || $block:expr) => { $crate::Fn!([$($env,)*] $move |$($arg => $type,$t $u,)*| -> _ { $block } ) };
+	(@args [$( $env:ident ,)* ] $move:ident |$( $arg:pat => $type:ty, $t:ident $u:ty,)*| ($($ss:ident)*) || -> $o:ty $block:block) => { $crate::Fn!([$($env,)*] $move |$($arg => $type,$t $u,)*| -> $o $block ) };
 
 	(@args [$( $env:ident ,)* ] $move:ident |$( $arg:pat => $type:ty, $t:ident $u:ty,)*| () |$( $tail:tt )*) => { compile_error!("This macro unfortunately only handles up to 32 arguments. Easily extendable, fork and bump it if you really need that many!") };
 
-	([$( $env:ident ),* $(,)* ] move | $( $tail:tt )*) => { Fn!(@args [$($env,)*] move | | (T0 T1 T2 T3 T4 T5 T6 T7 T8 T9 T10 T11 T12 T13 T14 T15 T16 T17 T18 T19 T20 T21 T22 T23 T24 T25 T26 T27 T28 T29 T30 T31 T32) | $( $tail )*) };
-	(move | $( $tail:tt )*) => { Fn!(@args [] move | | (T0 T1 T2 T3 T4 T5 T6 T7 T8 T9 T10 T11 T12 T13 T14 T15 T16 T17 T18 T19 T20 T21 T22 T23 T24 T25 T26 T27 T28 T29 T30 T31 T32) | $( $tail )*) };
-	([$( $env:ident ),* $(,)* ] move || $( $tail:tt )*) => { Fn!(@args [$($env,)*] move | | (T0 T1 T2 T3 T4 T5 T6 T7 T8 T9 T10 T11 T12 T13 T14 T15 T16 T17 T18 T19 T20 T21 T22 T23 T24 T25 T26 T27 T28 T29 T30 T31 T32) || $( $tail )*) };
-	(move || $( $tail:tt )*) => { Fn!(@args [] move | | (T0 T1 T2 T3 T4 T5 T6 T7 T8 T9 T10 T11 T12 T13 T14 T15 T16 T17 T18 T19 T20 T21 T22 T23 T24 T25 T26 T27 T28 T29 T30 T31 T32) || $( $tail )*) };
-	([$( $env:ident ),* $(,)* ] | $( $tail:tt )*) => { Fn!(@args [$($env,)*] ref | | (T0 T1 T2 T3 T4 T5 T6 T7 T8 T9 T10 T11 T12 T13 T14 T15 T16 T17 T18 T19 T20 T21 T22 T23 T24 T25 T26 T27 T28 T29 T30 T31 T32) | $( $tail )*) };
-	(| $( $tail:tt )*) => { Fn!(@args [] ref | | (T0 T1 T2 T3 T4 T5 T6 T7 T8 T9 T10 T11 T12 T13 T14 T15 T16 T17 T18 T19 T20 T21 T22 T23 T24 T25 T26 T27 T28 T29 T30 T31 T32) | $( $tail )*) };
-	([$( $env:ident ),* $(,)* ] || $( $tail:tt )*) => { Fn!(@args [$($env,)*] ref | | (T0 T1 T2 T3 T4 T5 T6 T7 T8 T9 T10 T11 T12 T13 T14 T15 T16 T17 T18 T19 T20 T21 T22 T23 T24 T25 T26 T27 T28 T29 T30 T31 T32) || $( $tail )*) };
-	(|| $( $tail:tt )*) => { Fn!(@args [] ref | | (T0 T1 T2 T3 T4 T5 T6 T7 T8 T9 T10 T11 T12 T13 T14 T15 T16 T17 T18 T19 T20 T21 T22 T23 T24 T25 T26 T27 T28 T29 T30 T31 T32) || $( $tail )*) };
+	([$( $env:ident ),* $(,)* ] move | $( $tail:tt )*) => { $crate::Fn!(@args [$($env,)*] move | | (T0 T1 T2 T3 T4 T5 T6 T7 T8 T9 T10 T11 T12 T13 T14 T15 T16 T17 T18 T19 T20 T21 T22 T23 T24 T25 T26 T27 T28 T29 T30 T31 T32) | $( $tail )*) };
+	(move | $( $tail:tt )*) => { $crate::Fn!(@args [] move | | (T0 T1 T2 T3 T4 T5 T6 T7 T8 T9 T10 T11 T12 T13 T14 T15 T16 T17 T18 T19 T20 T21 T22 T23 T24 T25 T26 T27 T28 T29 T30 T31 T32) | $( $tail )*) };
+	([$( $env:ident ),* $(,)* ] move || $( $tail:tt )*) => { $crate::Fn!(@args [$($env,)*] move | | (T0 T1 T2 T3 T4 T5 T6 T7 T8 T9 T10 T11 T12 T13 T14 T15 T16 T17 T18 T19 T20 T21 T22 T23 T24 T25 T26 T27 T28 T29 T30 T31 T32) || $( $tail )*) };
+	(move || $( $tail:tt )*) => { $crate::Fn!(@args [] move | | (T0 T1 T2 T3 T4 T5 T6 T7 T8 T9 T10 T11 T12 T13 T14 T15 T16 T17 T18 T19 T20 T21 T22 T23 T24 T25 T26 T27 T28 T29 T30 T31 T32) || $( $tail )*) };
+	([$( $env:ident ),* $(,)* ] | $( $tail:tt )*) => { $crate::Fn!(@args [$($env,)*] ref | | (T0 T1 T2 T3 T4 T5 T6 T7 T8 T9 T10 T11 T12 T13 T14 T15 T16 T17 T18 T19 T20 T21 T22 T23 T24 T25 T26 T27 T28 T29 T30 T31 T32) | $( $tail )*) };
+	(| $( $tail:tt )*) => { $crate::Fn!(@args [] ref | | (T0 T1 T2 T3 T4 T5 T6 T7 T8 T9 T10 T11 T12 T13 T14 T15 T16 T17 T18 T19 T20 T21 T22 T23 T24 T25 T26 T27 T28 T29 T30 T31 T32) | $( $tail )*) };
+	([$( $env:ident ),* $(,)* ] || $( $tail:tt )*) => { $crate::Fn!(@args [$($env,)*] ref | | (T0 T1 T2 T3 T4 T5 T6 T7 T8 T9 T10 T11 T12 T13 T14 T15 T16 T17 T18 T19 T20 T21 T22 T23 T24 T25 T26 T27 T28 T29 T30 T31 T32) || $( $tail )*) };
+	(|| $( $tail:tt )*) => { $crate::Fn!(@args [] ref | | (T0 T1 T2 T3 T4 T5 T6 T7 T8 T9 T10 T11 T12 T13 T14 T15 T16 T17 T18 T19 T20 T21 T22 T23 T24 T25 T26 T27 T28 T29 T30 T31 T32) || $( $tail )*) };
 }
 
 #[cfg(test)]
