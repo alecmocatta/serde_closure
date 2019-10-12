@@ -187,7 +187,7 @@
 //!     |     in this macro invocation
 //! ```
 
-#![doc(html_root_url = "https://docs.rs/serde_closure/0.1.5")]
+#![doc(html_root_url = "https://docs.rs/serde_closure/0.2.0")]
 #![feature(unboxed_closures, fn_traits)]
 #![warn(
 	missing_copy_implementations,
