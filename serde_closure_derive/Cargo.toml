@@ -1,7 +1,5 @@
-[workspace]
-
 [package]
-name = "serde_closure"
+name = "serde_closure_derive"
 version = "0.1.5"
 license = "MIT OR Apache-2.0"
 authors = ["Alec Mocatta <alec@mocatta.net>"]
@@ -11,23 +9,26 @@ description = """
 Serializable closures.
 
 This library provides macros to wrap closures such that they can serialized and sent between other processes running the same binary.
+
+See [`serde_closure`](https://crates.io/crates/serde_closure) for documentation.
 """
 repository = "https://github.com/alecmocatta/serde_closure"
 homepage = "https://github.com/alecmocatta/serde_closure"
 documentation = "https://docs.rs/serde_closure/0.1.5"
-readme = "README.md"
 edition = "2018"
 
 [badges]
 azure-devops = { project = "alecmocatta/serde_closure", pipeline = "tests" }
 maintenance = { status = "actively-developed" }
 
-[dependencies]
-serde_closure_derive = { path = "serde_closure_derive", version = "0.1.5" }
-serde_derive = "1.0"
-serde = { version = "1.0", features = ["derive"] }
-proc-macro-hack = "0.5"
+[lib]
+proc-macro = true
 
-[dev-dependencies]
-serde_json = "1.0"
-bincode = "1.0"
+[dependencies]
+proc-macro2 = { version = "1.0.1", default-features = false }
+proc-macro-hack = "0.5"
+quote = { version = "1.0.2", default-features = false }
+syn = { version = "1.0.5", default-features = false, features = ["clone-impls", "full", "parsing", "printing", "proc-macro"] }
+
+[features]
+assert-hack = []

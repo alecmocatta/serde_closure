@@ -23,22 +23,22 @@ For example, if you have multiple forks of a process, or the same binary running
 on each of a cluster of machines, this library would help you to send closures
 between them.
 
-This library aims to work in as simple and un-magical a way as possible. It
-currently requires nightly Rust for the `unboxed_closures` and `fn_traits`
-features (rust issue [#29625](https://github.com/rust-lang/rust/issues/29625)).
+This library aims to work in as simple, safe and un-magical a way as possible.
+It currently requires nightly Rust for the `unboxed_closures` and `fn_traits`
+features (rust issue
+[#29625](https://github.com/rust-lang/rust/issues/29625)).
 
  * There are three macros,
- [FnOnce](https://docs.rs/serde_closure/0.1.5/serde_closure/macro.FnOnce.html),
- [FnMut](https://docs.rs/serde_closure/0.1.5/serde_closure/macro.FnMut.html) and
- [Fn](https://docs.rs/serde_closure/0.1.5/serde_closure/macro.Fn.html),
- corresponding to the three types of Rust closure.
- * The *captured variables*, i.e. those variables that are referenced by the
- closure but are declared outside of it, must be explicitly listed.
- * There are currently some minor limitations of syntax over normal closure
- syntax, which are documented below.
- * The closure is coerced to a function pointer, which is wrapped by
- [relative::Code](https://docs.rs/relative) such that it can safely be sent
- between processes.
+   [`FnOnce`](https://docs.rs/serde_closure/0.1.5/serde_closure/macro.FnOnce.html),
+   [`FnMut`](https://docs.rs/serde_closure/0.1.5/serde_closure/macro.FnMut.html)
+   and [`Fn`](https://docs.rs/serde_closure/0.1.5/serde_closure/macro.Fn.html),
+   corresponding to the three types of Rust closure.
+ * Wrap your closure with one of the macros and it will now implement `Copy`,
+   `Clone`, `PartialEq`, `Eq`, `Hash`, `PartialOrd`, `Ord`, `Serialize`,
+   `Deserialize` and `Debug`.
+ * There are some minor syntax limitations, which are documented below.
+ * This crate has one unavoidable but documented and sound usage of
+   `unsafe`.
 
 ## Examples of wrapped closures
 **Inferred, non-capturing closure:**
@@ -64,40 +64,64 @@ let mut num = 0;
 ```
 ```rust
 let mut num = 0;
-FnMut!([num] |a| *num += a)
+FnMut!(|a| num += a)
 ```
-Note: As this is a FnMut closure, `num` is a mutable reference, and must be
-dereferenced to use.
 
 **`move` closure, capturing `hello` and `world`:**
 ```rust
 let hello = String::from("hello");
 let mut world = String::new();
 move |name| {
-	world += (hello.to_uppercase() + name).as_str();
+    world += (hello.to_uppercase() + name).as_str();
 }
 ```
 ```rust
 let hello = String::from("hello");
 let mut world = String::new();
-FnMut!([hello, world] move |name| {
-	*world += (hello.to_uppercase() + name).as_str();
+FnMut!(move |name| {
+    world += (hello.to_uppercase() + name).as_str();
 })
 ```
-Note: `world` must be dereferenced to use.
 
-## Cosmetic limitations
-As visible above, there are currently some minor limitations:
- * The captured variables in FnMut and Fn closures are references, so need
-to be dereferenced;
- * Compiler errors are not as helpful as normal:
+## Limitations
+There are currently some minor limitations:
+ * Captured variables with an uppercase first letter need to be explicitly
+   captured. If you see a panic like the following, fix the case of the
+   variable.
 ```text
-error[E0308]: mismatched types
-...
-   = note: expected type `for<..> fn(&'r mut (..), (..))`
-              found type `[closure@<FnMut macros>:9:9: 10:44 my_var:_]`
+thread 'main' panicked at 'A variable with an upper case first letter was implicitly captured.
+Unfortunately due to current limitations it must be captured explicitly.
+Please refer to the README.', tests/test.rs:205:10
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace.
 ```
-means that `my_var` is a captured variable, but was not explicitly listed.
+ * Functions called inside the closure might need to be disambiguated. This
+   also affects enum unit and tuple variants with a lowercase first letter.
+   If you see an error like either of the following, qualify `my_function`
+   as `self::my_function` and `my_enum_variant` as
+   `MyEnum::my_enum_variant`.
+```text
+error[E0277]: the trait bound `fn(usize) -> std::option::Option<usize> {my_function::<usize>}: fnref::_IMPL_DESERIALIZE_FOR_Fn::_serde::Serialize` is not satisfied
+   --> tests/test.rs:327:10
+    |
+314 |     fn unfold<A, St, F>(initial_state: St, f: F) -> Unfold<St, F>
+    |        ------
+315 |     where
+316 |         F: Fn(&mut St) -> Option<A> + Serialize,
+    |                                       --------- required by this bound in `fnref::unfold`
+...
+327 |     let _ = unfold(0_usize, Fn!(|acc: &mut _| my_function(*acc)));
+    |             ^^^^^^ the trait `fnref::_IMPL_DESERIALIZE_FOR_Fn::_serde::Serialize` is not implemented for `fn(usize) -> std::option::Option<usize> {my_function::<usize>}`
+```
+```text
+error[E0530]: function parameters cannot shadow tuple variants
+   --> tests/test.rs:173:47
+    |
+173 |     FnMut!(|acc: &mut _| my_enum_variant(*acc))
+    |     ---------------------^^^^^^^^^^^^^^^-------
+    |     |                    |
+    |     |                    cannot be named the same as a tuple variant
+    |     in this macro invocation
+```
 
 ## License
 Licensed under either of
