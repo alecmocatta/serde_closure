@@ -1,20 +1,20 @@
 [package]
 name = "serde_closure_derive"
-version = "0.2.0"
+version = "0.2.1"
 license = "MIT OR Apache-2.0"
 authors = ["Alec Mocatta <alec@mocatta.net>"]
 categories = ["development-tools","encoding","rust-patterns","network-programming"]
 keywords = ["closure","serialization","serde","distributed"]
 description = """
-Serializable closures.
+Serializable and debuggable closures.
 
-This library provides macros to wrap closures such that they can serialized and sent between other processes running the same binary.
+This library provides macros that wrap closures to make them serializable and debuggable.
 
-See [`serde_closure`](https://crates.io/crates/serde_closure) for documentation.
+See https://crates.io/crates/serde_closure for documentation.
 """
 repository = "https://github.com/alecmocatta/serde_closure"
 homepage = "https://github.com/alecmocatta/serde_closure"
-documentation = "https://docs.rs/serde_closure/0.2.0"
+documentation = "https://docs.rs/serde_closure/0.2.1"
 edition = "2018"
 
 [badges]
@@ -25,7 +25,7 @@ maintenance = { status = "actively-developed" }
 proc-macro = true
 
 [dependencies]
-proc-macro2 = { version = "1.0.1", default-features = false }
+proc-macro2 = { version = "1.0.1", default-features = false, features = ["span-locations"] }
 proc-macro-hack = "0.5"
 quote = { version = "1.0.2", default-features = false }
 syn = { version = "1.0.5", default-features = false, features = ["clone-impls", "full", "parsing", "printing", "proc-macro"] }
