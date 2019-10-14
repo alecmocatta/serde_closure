@@ -2,19 +2,19 @@
 
 [package]
 name = "serde_closure"
-version = "0.2.0"
+version = "0.2.1"
 license = "MIT OR Apache-2.0"
 authors = ["Alec Mocatta <alec@mocatta.net>"]
 categories = ["development-tools","encoding","rust-patterns","network-programming"]
 keywords = ["closure","serialization","serde","distributed"]
 description = """
-Serializable closures.
+Serializable and debuggable closures.
 
-This library provides macros to wrap closures such that they can serialized and sent between other processes running the same binary.
+This library provides macros that wrap closures to make them serializable and debuggable.
 """
 repository = "https://github.com/alecmocatta/serde_closure"
 homepage = "https://github.com/alecmocatta/serde_closure"
-documentation = "https://docs.rs/serde_closure/0.2.0"
+documentation = "https://docs.rs/serde_closure/0.2.1"
 readme = "README.md"
 edition = "2018"
 
@@ -23,7 +23,7 @@ azure-devops = { project = "alecmocatta/serde_closure", pipeline = "tests" }
 maintenance = { status = "actively-developed" }
 
 [dependencies]
-serde_closure_derive = { version = "=0.2.0", path = "serde_closure_derive" }
+serde_closure_derive = { version = "=0.2.1", path = "serde_closure_derive" }
 serde_derive = "1.0"
 serde = { version = "1.0", features = ["derive"] }
 proc-macro-hack = "0.5"
