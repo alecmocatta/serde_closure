@@ -362,6 +362,18 @@ fn fnref() {
 	let _ = (c, c);
 }
 
+#[test]
+fn source() {
+	assert!(format!("{:?}", FnOnce!(|| "qwerty")).contains("qwerty"));
+}
+
+#[test]
+fn upcast() {
+	let closure = FnOnce!(|x: &str| "test");
+	let closure: Box<dyn FnOnce(&str) -> &'static str + Send + Sync> = Box::new(closure);
+	closure("test");
+}
+
 mod no_prelude {
 	#![no_implicit_prelude]
 

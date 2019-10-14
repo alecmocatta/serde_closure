@@ -1,74 +1,29 @@
-//! Serializable closures.
+//! Serializable and debuggable closures.
 //!
 //! **[Crates.io](https://crates.io/crates/serde_closure) │
 //! [Repo](https://github.com/alecmocatta/serde_closure)**
 //!
-//! This library provides macros to wrap closures such that they can be
-//! serialized and sent between other processes running the same binary.
+//! This library provides macros that wrap closures to make them serializable
+//! and debuggable.
 //!
 //! ```
-//! # #![feature(never_type)]
-//! # #[macro_use] extern crate serde_closure;
-//! # use std::{iter};
-//! # trait IntoDistributedIterator { //where for <'a> &'a Self: IntoDistributedIterator, for <'a> &'a mut Self: IntoDistributedIterator {
-//! # 	type Iter: DistributedIterator<Item = Self::Item>;
-//! # 	type Item;
-//! # 	fn into_dist_iter(self) -> Self::Iter where Self: Sized;
-//! # 	fn dist_iter_mut(&mut self) -> <&mut Self as IntoDistributedIterator>::Iter where for <'a> &'a mut Self: IntoDistributedIterator {
-//! # 		<&mut Self as IntoDistributedIterator>::into_dist_iter(self)
-//! # 	}
-//! # 	fn dist_iter(&self) -> <&Self as IntoDistributedIterator>::Iter where for <'a> &'a Self: IntoDistributedIterator {
-//! # 		<&Self as IntoDistributedIterator>::into_dist_iter(self)
-//! # 	}
-//! # }
-//! # trait DistributedIterator {
-//! # 	type Item;
-//! # 	fn map<B,F>(self, f: F) -> Map<Self,F> where F: FnMut(Self::Item) -> B, Self: Sized {
-//! # 		Map(self, f)
-//! # 	}
-//! # 	fn sum<S>(self) -> S where S: iter::Sum<Self::Item> + iter::Sum<S>, Self: Sized {
-//! # 		unimplemented!()
-//! # 	}
-//! # }
-//! # impl<T> IntoDistributedIterator for [T] {
-//! # 	type Iter = !;
-//! # 	type Item = !;
-//! # 	fn into_dist_iter(self) -> Self::Iter where Self: Sized {
-//! # 		unreachable!()
-//! # 	}
-//! # }
-//! # impl DistributedIterator for ! {
-//! # 	type Item = !;
-//! # }
-//! # impl<'a,T> IntoDistributedIterator for &'a [T] {
-//! # 	type Iter = IterRef<'a,T>;
-//! # 	type Item = &'a T;
-//! # 	fn into_dist_iter(self) -> Self::Iter where Self: Sized {
-//! # 		IterRef(self)
-//! # 	}
-//! # }
-//! # struct IterRef<'a,T:'a>(&'a [T]);
-//! # impl<'a,T:'a> DistributedIterator for IterRef<'a,T> {
-//! # 	type Item = &'a T;
-//! # }
-//! # struct Map<I,F>(I,F);
-//! # impl<I,F> DistributedIterator for Map<I,F> where I: DistributedIterator {
-//! # 	type Item = I::Item;
-//! # }
-//! fn sum_of_squares(input: &[i32]) -> i32 {
-//!     input.dist_iter()
-//!         .map(Fn!(|&i| i * i))
-//!         .sum()
-//! }
+//! # use serde_closure::Fn;
+//! let one = 1;
+//! let plus_one = Fn!(|x: i32| x + one);
+//!
+//! assert_eq!(2, plus_one(1));
+//! println!("{:#?}", plus_one);
+//!
+//! // prints:
+//! // Fn<main::{{closure}} at main.rs:6:15> {
+//! //     one: 1,
+//! //     source: "| x : i32 | x + one",
+//! // }
 //! ```
 //!
-//! For example, if you have multiple forks of a process, or the same binary
-//! running on each of a cluster of machines, this library would help you to
-//! send closures between them.
-//!
-//! This library aims to work in as simple, safe and un-magical a way as
-//! possible. It currently requires nightly Rust for the `unboxed_closures` and
-//! `fn_traits` features (rust issue
+//! This library aims to work in as simple and safe a way as possible. It
+//! currently requires nightly Rust for the `unboxed_closures` and `fn_traits`
+//! features (rust issue
 //! [#29625](https://github.com/rust-lang/rust/issues/29625)).
 //!
 //!  * There are three macros, [`FnOnce`](macro@FnOnce), [`FnMut`](macro@FnMut)
@@ -186,6 +141,24 @@
 //!     |     |                    cannot be named the same as a tuple variant
 //!     |     in this macro invocation
 //! ```
+//!
+//! # Serializing between processes
+//!
+//! Closures created by this crate are unnameable – i.e. just like normal
+//! closures, there is no Rust syntax available with which to write the type.
+//! What this means is that to deserialize a closure, you either need to specify
+//! the precise type you're deserializing without naming it (which is possible
+//! but not particularly practical), or *erase* the type by storing it in a
+//! [trait object](https://doc.rust-lang.org/beta/book/ch17-02-trait-objects.html).
+//!
+//! The [`serde_traitobject`](https://github.com/alecmocatta/serde_traitobject)
+//! crate enables trait objects to be safely serialized and sent between other
+//! processes running the same binary.
+//!
+//! For example, if you have multiple forks of a process, or the same binary
+//! running on each of a cluster of machines,
+//! [`serde_traitobject`](https://github.com/alecmocatta/serde_traitobject)
+//! would help you to send serializable closures between them.
 
 #![doc(html_root_url = "https://docs.rs/serde_closure/0.2.0")]
 #![feature(unboxed_closures, fn_traits)]
@@ -203,28 +176,29 @@
 #![allow(clippy::inline_always)]
 
 use proc_macro_hack::proc_macro_hack;
-use serde::{Deserialize, Serialize};
-use std::fmt::{self, Debug};
 
-/// Macro that wraps a closure, evaluating to a [`FnOnce`](struct@FnOnce) struct
-/// that implements [`std::ops::FnOnce`], serde's [`Serialize`] and
-/// [`Deserialize`], and various convenience traits.
+/// Macro that wraps a closure, evaluating to a [`FnOnce`](structs::FnOnce)
+/// struct that implements [`std::ops::FnOnce`], [`Debug`](std::fmt::Debug),
+/// [`Serialize`](serde::Serialize) and [`Deserialize`](serde::Deserialize), and
+/// various convenience traits.
 ///
 /// See the [readme](self) for examples.
 #[proc_macro_hack(fake_call_site)]
 pub use serde_closure_derive::FnOnce;
 
-/// Macro that wraps a closure, evaluating to a [`FnMut`](struct@FnMut) struct
-/// that implements [`std::ops::FnMut`], serde's [`Serialize`] and
-/// [`Deserialize`], and various convenience traits.
+/// Macro that wraps a closure, evaluating to a [`FnMut`](structs::FnMut) struct
+/// that implements [`std::ops::FnMut`], [`Debug`](std::fmt::Debug),
+/// [`Serialize`](serde::Serialize) and [`Deserialize`](serde::Deserialize), and
+/// various convenience traits.
 ///
 /// See the [readme](self) for examples.
 #[proc_macro_hack(fake_call_site)]
 pub use serde_closure_derive::FnMut;
 
-/// Macro that wraps a closure, evaluating to a [`Fn`](struct@Fn) struct that
-/// implements [`std::ops::Fn`], serde's [`Serialize`] and
-/// [`Deserialize`], and various convenience traits.
+/// Macro that wraps a closure, evaluating to a [`Fn`](structs::Fn) struct that
+/// implements [`std::ops::Fn`], [`Debug`](std::fmt::Debug),
+/// [`Serialize`](serde::Serialize) and [`Deserialize`](serde::Deserialize), and
+/// various convenience traits.
 ///
 /// See the [readme](self) for examples.
 #[proc_macro_hack(fake_call_site)]
@@ -232,7 +206,11 @@ pub use serde_closure_derive::Fn;
 
 #[doc(hidden)]
 pub mod internal {
-	use std::ops;
+	pub use core;
+	pub use serde;
+	pub use std;
+
+	use std::marker::PhantomData;
 
 	pub trait FnOnce<Args> {
 		type Output;
@@ -246,20 +224,102 @@ pub mod internal {
 		fn call(&self, args: Args) -> Self::Output;
 	}
 
-	impl<F, I> ops::FnOnce<I> for super::FnOnce<F>
+	#[inline(always)]
+	pub fn to_phantom<T>(_t: &T) -> PhantomData<fn(T)> {
+		PhantomData
+	}
+	#[inline(always)]
+	pub fn is_phantom<T>(_t: &T, _marker: PhantomData<fn(T)>) {}
+
+	#[cold]
+	pub fn panic() -> ! {
+		panic!("A variable with an upper case first letter was implicitly captured.\nUnfortunately due to current limitations it must be captured explicitly.\nPlease refer to the README.");
+	}
+}
+
+pub mod structs {
+	//! Structs representing a serializable closure, created by the
+	//! [`FnOnce`](macro@FnOnce), [`FnMut`](macro@FnMut) and [`Fn`](macro@Fn)
+	//! macros. They Implement [`std::ops::FnOnce`], [`std::ops::FnMut`] and
+	//! [`std::ops::Fn`] respectively, as well as [`Debug`](std::fmt::Debug),
+	//! [`Serialize`](serde::Serialize) and [`Deserialize`](serde::Deserialize),
+	//! and various convenience traits.
+	//!
+	//! See the [readme](self) for examples.
+
+	use serde::{Deserialize, Serialize};
+	use std::{
+		fmt::{self, Debug}, ops
+	};
+
+	use super::internal;
+
+	/// A struct representing a serializable closure, created by the
+	/// [`FnOnce`](macro@FnOnce) macro. Implements [`std::ops::FnOnce`],
+	/// [`Debug`], [`Serialize`] and [`Deserialize`], and various convenience
+	/// traits.
+	///
+	/// See the [readme](self) for examples.
+	#[derive(Copy, Clone, PartialEq, Eq, Hash, PartialOrd, Ord, Serialize, Deserialize)]
+	#[serde(transparent)]
+	pub struct FnOnce<F> {
+		f: F,
+	}
+	impl<F> FnOnce<F> {
+		/// Internal method
+		#[doc(hidden)]
+		#[inline(always)]
+		pub fn internal_new<I>(f: F) -> Self
+		where
+			F: internal::FnOnce<I>,
+		{
+			Self { f }
+		}
+	}
+	impl<F, I> ops::FnOnce<I> for FnOnce<F>
 	where
-		F: FnOnce<I>,
+		F: internal::FnOnce<I>,
 	{
 		type Output = F::Output;
 		#[inline(always)]
 		extern "rust-call" fn call_once(self, args: I) -> Self::Output {
 			self.f.call_once(args)
+		}
+	}
+	impl<F> Debug for FnOnce<F>
+	where
+		F: Debug,
+	{
+		fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+			Debug::fmt(&self.f, f)
 		}
 	}
 
-	impl<F, I> ops::FnOnce<I> for super::FnMut<F>
+	/// A struct representing a serializable closure, created by the
+	/// [`FnMut`](macro@FnMut) macro. Implements [`std::ops::FnMut`],
+	/// [`Debug`], [`Serialize`] and [`Deserialize`], and various convenience
+	/// traits.
+	///
+	/// See the [readme](self) for examples.
+	#[derive(Copy, Clone, PartialEq, Eq, Hash, PartialOrd, Ord, Serialize, Deserialize)]
+	#[serde(transparent)]
+	pub struct FnMut<F> {
+		f: F,
+	}
+	impl<F> FnMut<F> {
+		/// Internal method
+		#[doc(hidden)]
+		#[inline(always)]
+		pub fn internal_new<I>(f: F) -> Self
+		where
+			F: internal::FnMut<I>,
+		{
+			Self { f }
+		}
+	}
+	impl<F, I> ops::FnOnce<I> for FnMut<F>
 	where
-		F: FnOnce<I>,
+		F: internal::FnOnce<I>,
 	{
 		type Output = F::Output;
 		#[inline(always)]
@@ -267,19 +327,48 @@ pub mod internal {
 			self.f.call_once(args)
 		}
 	}
-	impl<F, I> ops::FnMut<I> for super::FnMut<F>
+	impl<F, I> ops::FnMut<I> for FnMut<F>
 	where
-		F: FnMut<I>,
+		F: internal::FnMut<I>,
 	{
 		#[inline(always)]
 		extern "rust-call" fn call_mut(&mut self, args: I) -> Self::Output {
 			self.f.call_mut(args)
 		}
 	}
-
-	impl<F, I> ops::FnOnce<I> for super::Fn<F>
+	impl<F> Debug for FnMut<F>
 	where
-		F: FnOnce<I>,
+		F: Debug,
+	{
+		fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+			Debug::fmt(&self.f, f)
+		}
+	}
+
+	/// A struct representing a serializable closure, created by the
+	/// [`Fn`](macro@Fn) macro. Implements [`std::ops::Fn`], [`Debug`],
+	/// [`Serialize`] and [`Deserialize`], and various convenience traits.
+	///
+	/// See the [readme](self) for examples.
+	#[derive(Copy, Clone, PartialEq, Eq, Hash, PartialOrd, Ord, Serialize, Deserialize)]
+	#[serde(transparent)]
+	pub struct Fn<F> {
+		f: F,
+	}
+	impl<F> Fn<F> {
+		/// Internal method
+		#[doc(hidden)]
+		#[inline(always)]
+		pub fn internal_new<I>(f: F) -> Self
+		where
+			F: internal::Fn<I>,
+		{
+			Self { f }
+		}
+	}
+	impl<F, I> ops::FnOnce<I> for Fn<F>
+	where
+		F: internal::FnOnce<I>,
 	{
 		type Output = F::Output;
 		#[inline(always)]
@@ -287,110 +376,30 @@ pub mod internal {
 			self.f.call_once(args)
 		}
 	}
-	impl<F, I> ops::FnMut<I> for super::Fn<F>
+	impl<F, I> ops::FnMut<I> for Fn<F>
 	where
-		F: FnMut<I>,
+		F: internal::FnMut<I>,
 	{
 		#[inline(always)]
 		extern "rust-call" fn call_mut(&mut self, args: I) -> Self::Output {
 			self.f.call_mut(args)
 		}
 	}
-	impl<F, I> ops::Fn<I> for super::Fn<F>
+	impl<F, I> ops::Fn<I> for Fn<F>
 	where
-		F: Fn<I>,
+		F: internal::Fn<I>,
 	{
 		#[inline(always)]
 		extern "rust-call" fn call(&self, args: I) -> Self::Output {
 			self.f.call(args)
 		}
 	}
-}
-
-/// A struct representing a serializable closure, created by the
-/// [`FnOnce`](macro@FnOnce) macro. Implements [`std::ops::FnOnce`], serde's [`Serialize`] and
-/// [`Deserialize`], and various convenience traits.
-///
-/// See the [readme](self) for examples.
-#[derive(Copy, Clone, PartialEq, Eq, Hash, PartialOrd, Ord, Serialize, Deserialize)]
-#[serde(transparent)]
-pub struct FnOnce<F> {
-	f: F,
-}
-impl<F> FnOnce<F> {
-	/// Internal method
-	#[doc(hidden)]
-	pub fn internal_new<I>(f: F) -> Self
+	impl<F> Debug for Fn<F>
 	where
-		F: internal::FnOnce<I>,
+		F: Debug,
 	{
-		Self { f }
-	}
-}
-impl<F> Debug for FnOnce<F>
-where
-	F: Debug,
-{
-	fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-		Debug::fmt(&self.f, f)
-	}
-}
-
-/// A struct representing a serializable closure, created by the
-/// [`FnMut`](macro@FnMut) macro. Implements [`std::ops::FnMut`], serde's [`Serialize`] and
-/// [`Deserialize`], and various convenience traits.
-///
-/// See the [readme](self) for examples.
-#[derive(Copy, Clone, PartialEq, Eq, Hash, PartialOrd, Ord, Serialize, Deserialize)]
-#[serde(transparent)]
-pub struct FnMut<F> {
-	f: F,
-}
-impl<F> FnMut<F> {
-	/// Internal method
-	#[doc(hidden)]
-	pub fn internal_new<I>(f: F) -> Self
-	where
-		F: internal::FnMut<I>,
-	{
-		Self { f }
-	}
-}
-impl<F> Debug for FnMut<F>
-where
-	F: Debug,
-{
-	fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-		Debug::fmt(&self.f, f)
-	}
-}
-
-/// A struct representing a serializable closure, created by the [`Fn`](macro@Fn)
-/// macro. Implements [`std::ops::Fn`], serde's [`Serialize`]
-/// and [`Deserialize`], and various convenience
-/// traits.
-///
-/// See the [readme](self) for examples.
-#[derive(Copy, Clone, PartialEq, Eq, Hash, PartialOrd, Ord, Serialize, Deserialize)]
-#[serde(transparent)]
-pub struct Fn<F> {
-	f: F,
-}
-impl<F> Fn<F> {
-	/// Internal method
-	#[doc(hidden)]
-	pub fn internal_new<I>(f: F) -> Self
-	where
-		F: internal::Fn<I>,
-	{
-		Self { f }
-	}
-}
-impl<F> Debug for Fn<F>
-where
-	F: Debug,
-{
-	fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-		Debug::fmt(&self.f, f)
+		fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+			Debug::fmt(&self.f, f)
+		}
 	}
 }

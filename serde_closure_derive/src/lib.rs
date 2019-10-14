@@ -1,10 +1,10 @@
-//! Serializable closures.
+//! Serializable and debuggable closures.
 //!
 //! **[Crates.io](https://crates.io/crates/serde_closure) │
 //! [Repo](https://github.com/alecmocatta/serde_closure)**
 //!
-//! This library provides macros to wrap closures such that they can be
-//! serialized and sent between other processes running the same binary.
+//! This library provides macros that wrap closures to make them serializable
+//! and debuggable.
 //!
 //! See [`serde_closure`](https://docs.rs/serde_closure/) for
 //! documentation.
@@ -16,8 +16,8 @@ extern crate proc_macro;
 
 use proc_macro2::{Span, TokenStream};
 use proc_macro_hack::proc_macro_hack;
-use quote::quote;
-use std::{collections::HashSet, iter, iter::successors};
+use quote::{quote, ToTokens};
+use std::{collections::HashSet, iter, iter::successors, str};
 use syn::{
 	parse::{Parse, ParseStream}, parse2, token::Bracket, Arm, Block, Error, Expr, ExprArray, ExprAssign, ExprAssignOp, ExprAsync, ExprAwait, ExprBinary, ExprBlock, ExprBox, ExprBreak, ExprCall, ExprCast, ExprClosure, ExprField, ExprForLoop, ExprGroup, ExprIf, ExprIndex, ExprLet, ExprLoop, ExprMatch, ExprMethodCall, ExprParen, ExprPath, ExprRange, ExprReference, ExprRepeat, ExprReturn, ExprStruct, ExprTry, ExprTryBlock, ExprTuple, ExprType, ExprUnary, ExprUnsafe, ExprWhile, ExprYield, FieldValue, Ident, Local, Member, Pat, PatBox, PatIdent, PatReference, PatSlice, PatTuple, PatTupleStruct, PatType, Path, PathArguments, PathSegment, Stmt, Type, TypeInfer, TypeReference, UnOp
 };
@@ -86,6 +86,7 @@ fn impl_fn_once(closure: Closure, kind: Kind) -> Result<TokenStream, Error> {
 
 	let _ = closure.env;
 	let closure = closure.closure;
+	let source = closure.to_token_stream().to_string();
 	let capture = closure.capture.is_some();
 	let mut closure = Expr::Closure(closure);
 	let mut env_variables = HashSet::new();
@@ -115,6 +116,7 @@ fn impl_fn_once(closure: Closure, kind: Kind) -> Result<TokenStream, Error> {
 		pat => (*pat).clone(),
 	});
 	let input_types = closure.inputs.iter().map(pat_to_type);
+	// let line_number = format!(" {}:{}:{}", closure.span().source_file(), closure.span().start().line, closure.span().start().column);
 
 	let type_params = &(0..env_variables.len())
 		.map(|i| {
@@ -157,65 +159,65 @@ fn impl_fn_once(closure: Closure, kind: Kind) -> Result<TokenStream, Error> {
 
 	let fn_impl = match kind {
 		Kind::Fn => quote! {
-			impl<#(#type_params,)* F, I, O> ::serde_closure::internal::FnOnce<I> for #name<#(#type_params,)* F>
+			impl<#(#type_params,)* F, I, O> internal::FnOnce<I> for #name<#(#type_params,)* F>
 			where
 				F: ops::FnOnce(&#name<#(#type_params,)* ()>,I) -> O
 			{
 				type Output = O;
 				#[inline(always)]
 				fn call_once(self, args: I) -> Self::Output {
-					self.f()(&self.set_f(), args)
+					self.f()(&self.strip_f(), args)
 				}
 			}
-			impl<#(#type_params,)* F, I, O> ::serde_closure::internal::FnMut<I> for #name<#(#type_params,)* F>
+			impl<#(#type_params,)* F, I, O> internal::FnMut<I> for #name<#(#type_params,)* F>
 			where
-				F: ops::FnOnce(&#name<#(#type_params,)* ()>,I) -> O
+				F: ops::FnMut(&#name<#(#type_params,)* ()>,I) -> O
 			{
 				#[inline(always)]
 				fn call_mut(&mut self, args: I) -> Self::Output {
-					self.f()(self.set_f_mut(), args)
+					(&mut self.f())(self.strip_f_mut(), args)
 				}
 			}
-			impl<#(#type_params,)* F, I, O> ::serde_closure::internal::Fn<I> for #name<#(#type_params,)* F>
+			impl<#(#type_params,)* F, I, O> internal::Fn<I> for #name<#(#type_params,)* F>
 			where
-				F: ops::FnOnce(&#name<#(#type_params,)* ()>,I) -> O
+				F: ops::Fn(&#name<#(#type_params,)* ()>,I) -> O
 			{
 				#[inline(always)]
 				fn call(&self, args: I) -> Self::Output {
-					self.f()(self.set_f_ref(), args)
+					(&self.f())(self.strip_f_ref(), args)
 				}
 			}
 		},
 		Kind::FnMut => quote! {
-			impl<#(#type_params,)* F, I, O> ::serde_closure::internal::FnOnce<I> for #name<#(#type_params,)* F>
+			impl<#(#type_params,)* F, I, O> internal::FnOnce<I> for #name<#(#type_params,)* F>
 			where
 				F: ops::FnOnce(&mut #name<#(#type_params,)* ()>,I) -> O
 			{
 				type Output = O;
 				#[inline(always)]
 				fn call_once(mut self, args: I) -> Self::Output {
-					self.f()(&mut self.set_f(), args)
+					self.f()(&mut self.strip_f(), args)
 				}
 			}
-			impl<#(#type_params,)* F, I, O> ::serde_closure::internal::FnMut<I> for #name<#(#type_params,)* F>
+			impl<#(#type_params,)* F, I, O> internal::FnMut<I> for #name<#(#type_params,)* F>
 			where
-				F: ops::FnOnce(&mut #name<#(#type_params,)* ()>,I) -> O
+				F: ops::FnMut(&mut #name<#(#type_params,)* ()>,I) -> O
 			{
 				#[inline(always)]
 				fn call_mut(&mut self, args: I) -> Self::Output {
-					self.f()(self.set_f_mut(), args)
+					(&mut self.f())(self.strip_f_mut(), args)
 				}
 			}
 		},
 		Kind::FnOnce => quote! {
-			impl<#(#type_params,)* F, I, O> ::serde_closure::internal::FnOnce<I> for #name<#(#type_params,)* F>
+			impl<#(#type_params,)* F, I, O> internal::FnOnce<I> for #name<#(#type_params,)* F>
 			where
 				F: ops::FnOnce(#name<#(#type_params,)* ()>,I) -> O
 			{
 				type Output = O;
 				#[inline(always)]
 				fn call_once(self, args: I) -> Self::Output {
-					self.f()(self.set_f(), args)
+					self.f()(self.strip_f(), args)
 				}
 			}
 		},
@@ -246,30 +248,25 @@ fn impl_fn_once(closure: Closure, kind: Kind) -> Result<TokenStream, Error> {
 
 	Ok(quote! {
 		{
-			use ::core::{
+			use ::serde_closure::{
+				self,
+				internal::{self, is_phantom, panic, to_phantom},
+				structs,
+			};
+			use internal::core::{
 				any::type_name,
 				clone::Clone,
-				cmp,
-				cmp::{Eq, Ord, PartialEq, PartialOrd},
+				cmp::{self, Eq, Ord, PartialEq, PartialOrd},
+				convert::From,
 				fmt::{self, Debug},
-				hash,
-				marker::Copy,
-				marker::PhantomData,
+				hash::{self, Hash},
+				marker::{Copy, PhantomData},
 				mem::{self, size_of, MaybeUninit},
 				ops,
 				option::Option::{self, Some},
-				unreachable,
 			};
-			use ::serde::{Deserialize, Serialize};
-			use ::std::{format, panic};
-			fn to_phantom<T>(t: &T) -> PhantomData<fn(T)> {
-				PhantomData
-			}
-			fn is_phantom<T>(t: &T, marker: PhantomData<fn(T)>) {}
-			#[cold]
-			fn panic() -> ! {
-				panic!("A variable with an upper case first letter was implicitly captured.\nUnfortunately due to current limitations it must be captured explicitly.\nPlease refer to the README.");
-			}
+			use internal::serde::{Deserialize, Serialize};
+			use internal::std::string::{String, ToString};
 			#[derive(Serialize, Deserialize)]
 			#[serde(
 				bound(serialize = #serialize_bounds),
@@ -278,46 +275,43 @@ fn impl_fn_once(closure: Closure, kind: Kind) -> Result<TokenStream, Error> {
 			struct #name<#(#type_params,)* F> {
 				#( #env_variables: #type_params, )*
 				#[serde(skip)]
-				marker: PhantomData<fn(F)>
+				f: PhantomData<F>
 			}
-			impl<#(#type_params,)* F> #name<#(#type_params,)* F> {
-				fn new(#( #env_variables: #type_params, )* _f: F) -> Self {
-					if size_of::<F>() != 0 {
-						panic();
+			impl<#(#type_params,)*> #name<#(#type_params,)* ()> {
+				fn new(#( #env_variables: #type_params, )*) -> Self {
+					Self {
+						#( #env_variables ,)*
+						f: PhantomData
 					}
-					Self{ #( #env_variables ,)* marker: PhantomData }
 				}
-				fn f(&self) -> F {
-					// This is safe as an F has already been materialized (so we
-					// know it isn't uninhabited) and size asserted to be zero.
-					unsafe { MaybeUninit::uninit().assume_init() }
-				}
-				fn set_f_with<F1>(self, _f: F1) -> #name<#(#type_params,)* F1> {
-					if size_of::<F1>() != 0 {
-						panic();
-					}
-					self.set_f()
-				}
-				fn set_f<F1>(self) -> #name<#(#type_params,)* F1> {
+				fn with_f<F1>(self, f: F1) -> #name<#(#type_params,)* F1> where F1: Copy {
 					if size_of::<F1>() != 0 {
 						panic();
 					}
 					#name {
 						#( #env_variables: self.#env_variables, )*
-						marker: PhantomData,
+						f: PhantomData
 					}
 				}
-				fn set_f_ref<F1>(&self) -> &#name<#(#type_params,)* F1> {
-					if size_of::<F1>() != 0 {
-						panic();
+			}
+			impl<#(#type_params,)* F> #name<#(#type_params,)* F> {
+				fn f(&self) -> F {
+					// This is safe as an F has already been materialized (so we
+					// know it isn't uninhabited), it's Copy, it's not Drop, and
+					// its size has been asserted to be zero.
+					unsafe { MaybeUninit::uninit().assume_init() }
+				}
+				fn strip_f(self) -> #name<#(#type_params,)* ()> {
+					#name {
+						#( #env_variables: self.#env_variables, )*
+						f: PhantomData
 					}
+				}
+				fn strip_f_ref(&self) -> &#name<#(#type_params,)* ()> {
 					// This is safe as the size and alignment don't change
 					unsafe { &*(self as *const _ as *const _) }
 				}
-				fn set_f_mut<F1>(&mut self) -> &mut #name<#(#type_params,)* F1> {
-					if size_of::<F1>() != 0 {
-						panic();
-					}
+				fn strip_f_mut(&mut self) -> &mut #name<#(#type_params,)* ()> {
 					// This is safe as the size and alignment don't change
 					unsafe { &mut *(self as *mut _ as *mut _) }
 				}
@@ -325,17 +319,19 @@ fn impl_fn_once(closure: Closure, kind: Kind) -> Result<TokenStream, Error> {
 			impl<#(#type_params,)* F> Clone for #name<#(#type_params,)* F>
 			where
 				#(#type_params: Clone,)*
+				F: Clone,
 			{
 				fn clone(&self) -> Self {
 					Self {
 						#( #env_variables: self.#env_variables.clone(), )*
-						marker: PhantomData,
+						f: PhantomData,
 					}
 				}
 			}
 			impl<#(#type_params,)* F> Copy for #name<#(#type_params,)* F>
 			where
 				#(#type_params: Copy,)*
+				F: Copy,
 			{}
 			impl<#(#type_params,)* F> PartialEq for #name<#(#type_params,)* F>
 			where
@@ -349,9 +345,9 @@ fn impl_fn_once(closure: Closure, kind: Kind) -> Result<TokenStream, Error> {
 			where
 				#(#type_params: Eq,)*
 			{}
-			impl<#(#type_params,)* F> hash::Hash for #name<#(#type_params,)* F>
+			impl<#(#type_params,)* F> Hash for #name<#(#type_params,)* F>
 			where
-				#(#type_params: hash::Hash,)*
+				#(#type_params: Hash,)*
 			{
 				fn hash<H: hash::Hasher>(&self, state: &mut H) {
 					#( self.#env_variables.hash(state); )*
@@ -390,15 +386,26 @@ fn impl_fn_once(closure: Closure, kind: Kind) -> Result<TokenStream, Error> {
 				#(#type_params: Debug,)*
 			{
 				fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-					f.debug_struct(&format!(concat!(stringify!(#name), "<{}>"), type_name::<F>()))
+					let mut name = String::from(stringify!(#name));
+					name.push('<');
+					name.push_str(type_name::<F>());
+					name.push_str(" at ");
+					name.push_str(file!());
+					name.push(':');
+					name.push_str(&line!().to_string());
+					name.push(':');
+					name.push_str(&column!().to_string());
+					name.push('>');
+					f.debug_struct(&name)
 						#( .field(stringify!(#env_variables), &self.#env_variables) )*
+						.field("source", &#source)
 						.finish()
 				}
 			}
 
 			#fn_impl
 
-			let mut #ret_name = #name::new(#env_capture ());
+			let mut #ret_name = #name::new(#env_capture);
 			let #env_types_name = to_phantom(&#ret_name);
 			// when impl_trait_in_bindings works could this be const?
 			// https://github.com/rust-lang/rust/issues/55272
@@ -406,18 +413,18 @@ fn impl_fn_once(closure: Closure, kind: Kind) -> Result<TokenStream, Error> {
 				#(#attrs)* #asyncness move |mut #env_name: #env_type, (#(#input_pats,)*): (#(#input_types,)*)| #output {
 					if false {
 						is_phantom(& #env_deref, #env_types_name);
-						unreachable!()
+						loop {}
 					}
 					#body
 				};
 			if false {
 				#[allow(unreachable_code)]
-				let _ = closure(#ret_ref, unreachable!());
+				let _ = closure(#ret_ref, loop {});
 			}
 
 			#assert_hack
 
-			::serde_closure::#name::internal_new(#ret_name.set_f_with(closure))
+			structs::#name::internal_new(#ret_name.with_f(closure))
 		}
 	})
 }
@@ -718,7 +725,7 @@ fn bijective_base(n: u64, base: u64, digits: impl Fn(u8) -> u8) -> String {
 		.count();
 	let index = BUF_SIZE - written;
 
-	unsafe { std::str::from_utf8_unchecked(&buffer[index..]) }.to_owned()
+	str::from_utf8(&buffer[index..]).unwrap().to_owned()
 }
 
 #[test]
