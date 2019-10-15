@@ -10,6 +10,7 @@
 //! documentation.
 
 #![doc(html_root_url = "https://docs.rs/serde_closure_derive/0.2.2")]
+#![feature(proc_macro_diagnostic)]
 #![allow(non_snake_case)] // due to proc-macro-hack can't apply this directly
 
 extern crate proc_macro;
@@ -19,7 +20,7 @@ use proc_macro_hack::proc_macro_hack;
 use quote::{quote, ToTokens};
 use std::{collections::HashSet, iter, iter::successors, str};
 use syn::{
-	parse::{Parse, ParseStream}, parse2, token::Bracket, Arm, Block, Error, Expr, ExprArray, ExprAssign, ExprAssignOp, ExprAsync, ExprAwait, ExprBinary, ExprBlock, ExprBox, ExprBreak, ExprCall, ExprCast, ExprClosure, ExprField, ExprForLoop, ExprGroup, ExprIf, ExprIndex, ExprLet, ExprLoop, ExprMatch, ExprMethodCall, ExprParen, ExprPath, ExprRange, ExprReference, ExprRepeat, ExprReturn, ExprStruct, ExprTry, ExprTryBlock, ExprTuple, ExprType, ExprUnary, ExprUnsafe, ExprWhile, ExprYield, FieldValue, Ident, Local, Member, Pat, PatBox, PatIdent, PatReference, PatSlice, PatTuple, PatTupleStruct, PatType, Path, PathArguments, PathSegment, Stmt, Type, TypeInfer, TypeReference, UnOp
+	parse::{Parse, ParseStream}, parse2, spanned::Spanned, token::Bracket, Arm, Block, Error, Expr, ExprArray, ExprAssign, ExprAssignOp, ExprAsync, ExprAwait, ExprBinary, ExprBlock, ExprBox, ExprBreak, ExprCall, ExprCast, ExprClosure, ExprField, ExprForLoop, ExprGroup, ExprIf, ExprIndex, ExprLet, ExprLoop, ExprMacro, ExprMatch, ExprMethodCall, ExprParen, ExprPath, ExprRange, ExprReference, ExprRepeat, ExprReturn, ExprStruct, ExprTry, ExprTryBlock, ExprTuple, ExprType, ExprUnary, ExprUnsafe, ExprWhile, ExprYield, FieldValue, Ident, Local, Member, Pat, PatBox, PatIdent, PatReference, PatSlice, PatTuple, PatTupleStruct, PatType, Path, PathArguments, PathSegment, Stmt, Type, TypeInfer, TypeReference, UnOp
 };
 
 #[proc_macro_hack]
@@ -729,6 +730,24 @@ impl<'a> State<'a> {
 				let mut state = self.enter_block();
 				state.expr(cond);
 				state.block(&mut body.stmts);
+			}
+			Expr::Macro(ExprMacro { ref mut mac, .. }) => {
+				let tokens = &mac.tokens;
+				if let Ok(expr) = parse2::<ExprCall>(quote! { self::abc(#tokens) }) {
+					let mut expr = Expr::Call(expr);
+					self.expr(&mut expr);
+					let expr = if let Expr::Call(expr) = expr {
+						expr
+					} else {
+						unreachable!()
+					};
+					mac.tokens = expr.args.to_token_stream();
+				} else {
+					mac.span()
+						.unwrap()
+						.warning("See https://github.com/alecmocatta/serde_closure/issues/16")
+						.emit()
+				}
 			}
 			_ => (),
 		}
