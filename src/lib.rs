@@ -232,8 +232,8 @@ pub mod internal {
 	pub fn is_phantom<T>(_t: &T, _marker: PhantomData<fn(T)>) {}
 
 	#[cold]
-	pub fn panic() -> ! {
-		panic!("A variable with an upper case first letter was implicitly captured.\nUnfortunately due to current limitations it must be captured explicitly.\nPlease refer to the README.");
+	pub fn panic(env_variables: &[&str], possible_env_variables: &[&str], source: &str) -> ! {
+		panic!("A variable with an upper case first letter was implicitly captured.\nCandidates: {:?}\nCaptured: {:?}\nUnfortunately due to current limitations it must be captured explicitly.\nPlease refer to the README.\nSource: {}", possible_env_variables, env_variables, source);
 	}
 }
 
