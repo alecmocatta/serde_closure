@@ -81,7 +81,6 @@ fn fnonce() {
 			a += *e;
 			*h += (b.clone() + f.as_str() + g.as_str()).as_str();
 			b += h.as_str();
-			let (a, b) = (&a, &b);
 			format!("{}{}{}{}{}{}{}{}", a, b, c, d, e, f, g, h)
 		}
 	);
@@ -159,7 +158,6 @@ fn fnmut() {
 				// *a += *e;
 				*h += (b.clone() + f.as_str() + g.as_str()).as_str();
 				// *b += h.as_str();
-				let (a, b) = (&a, &b);
 				format!("{}{}{}{}{}{}{}{}", a, b, c, d, e, f, g, h)
 			})(
 				0,
@@ -180,7 +178,6 @@ fn fnmut() {
 			a += *e;
 			*h += (b.clone() + f.as_str() + g.as_str()).as_str();
 			b += h.as_str();
-			let (a, b) = (&a, &b);
 			format!("{}{}{}{}{}{}{}{}", a, b, c, d, e, f, g, h)
 		}
 	);
@@ -201,7 +198,6 @@ fn fnmut() {
 	let _ = unfold(0_usize, FnMut!(|acc: &mut _| Some(*acc)));
 	let x = 123_usize;
 	let c = FnMut!(move |arg: String| {
-		let x = &x;
 		println!("{} {}", x, arg);
 	});
 	let _ = (c, c);
@@ -308,7 +304,6 @@ fn fnref() {
 				// *a += *e;
 				*h += (b.clone() + f.as_str() + g.as_str()).as_str();
 				// *b += h.as_str();
-				let (a, b) = (&a, &b);
 				format!("{}{}{}{}{}{}{}{}", a, b, c, d, e, f, g, h)
 			})(
 				0,
@@ -336,7 +331,6 @@ fn fnref() {
 		// *a += *e;
 		*h += (b.clone() + f.as_str() + g.as_str()).as_str();
 		// *b += h.as_str();
-		let (a, b) = (&a, &b);
 		format!("{}{}{}{}{}{}{}{}", a, b, c, d, e, f, g, h)
 	});
 	test(x);
@@ -356,7 +350,6 @@ fn fnref() {
 	let _ = unfold(0_usize, Fn!(|acc: &mut _| Some(*acc)));
 	let x = 123_usize;
 	let c = Fn!(move |arg: String| {
-		let x = &x;
 		println!("{} {}", x, arg);
 	});
 	let _ = (c, c);
