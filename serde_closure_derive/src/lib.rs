@@ -97,6 +97,7 @@ fn impl_fn_once(closure: Closure, kind: Kind) -> Result<TokenStream, Error> {
 	State::new(
 		&mut env_variables,
 		&mut possible_env_variables,
+		kind != Kind::FnOnce,
 		kind != Kind::FnOnce && !capture,
 		&env_name,
 	)
@@ -170,6 +171,16 @@ fn impl_fn_once(closure: Closure, kind: Kind) -> Result<TokenStream, Error> {
 	})
 	.unwrap()
 	.elems;
+	let env_deconstruct = if kind == Kind::FnOnce {
+		Some(
+			parse2::<Stmt>(
+				quote! { let #impls_name::#name{#(mut #env_variables ,)*..} = #env_name; },
+			)
+			.unwrap(),
+		)
+	} else {
+		None
+	};
 
 	let fn_impl = match kind {
 		Kind::Fn => quote! {
@@ -431,6 +442,7 @@ fn impl_fn_once(closure: Closure, kind: Kind) -> Result<TokenStream, Error> {
 						::serde_closure::internal::is_phantom(& #env_deref, #env_types_name);
 						loop {}
 					}
+					#env_deconstruct
 					#body
 				};
 			if false {
@@ -475,18 +487,20 @@ struct State<'a> {
 	variables: HashSet<Ident>,
 	env_variables: &'a mut HashSet<Ident>,
 	possible_env_variables: &'a mut HashSet<Ident>,
+	env_struct: bool,
 	deref: bool,
 	env_name: &'a Ident,
 }
 impl<'a> State<'a> {
 	fn new(
 		env_variables: &'a mut HashSet<Ident>, possible_env_variables: &'a mut HashSet<Ident>,
-		deref: bool, env_name: &'a Ident,
+		env_struct: bool, deref: bool, env_name: &'a Ident,
 	) -> Self {
 		Self {
 			variables: HashSet::new(),
 			env_variables,
 			possible_env_variables,
+			env_struct,
 			deref,
 			env_name,
 		}
@@ -496,6 +510,7 @@ impl<'a> State<'a> {
 			variables: self.variables.clone(),
 			env_variables: self.env_variables,
 			possible_env_variables: self.possible_env_variables,
+			env_struct: self.env_struct,
 			deref: self.deref,
 			env_name: self.env_name,
 		}
@@ -668,7 +683,7 @@ impl<'a> State<'a> {
 					state.expr(body);
 				}
 			}
-			Expr::Path(ExprPath { path, .. }) if path.get_ident().is_some() => {
+			Expr::Path(ExprPath { attrs, path, .. }) if path.get_ident().is_some() => {
 				let ident = path.get_ident().unwrap();
 				// referencing a variable
 				if !self.variables.contains(ident) {
@@ -676,23 +691,30 @@ impl<'a> State<'a> {
 					// structs/enum variants and functions. Use the case of the first char as a heuristic.
 					if !ident.to_string().chars().next().unwrap().is_uppercase() {
 						let _ = self.env_variables.insert(ident.clone());
-						let mut a = Expr::Field(ExprField {
-							attrs: vec![],
-							base: Box::new(Expr::Path(ExprPath {
-								attrs: vec![],
-								qself: None,
-								path: Path {
-									leading_colon: None,
-									segments: iter::once(PathSegment {
-										ident: self.env_name.clone(),
-										arguments: PathArguments::None,
-									})
-									.collect(),
-								},
-							})),
-							dot_token: Default::default(),
-							member: Member::Named(ident.clone()),
+						let mut a = Expr::Path(ExprPath {
+							attrs: attrs.clone(),
+							qself: None,
+							path: path.clone(),
 						});
+						if self.env_struct {
+							a = Expr::Field(ExprField {
+								attrs: vec![],
+								base: Box::new(Expr::Path(ExprPath {
+									attrs: attrs.clone(),
+									qself: None,
+									path: Path {
+										leading_colon: None,
+										segments: iter::once(PathSegment {
+											ident: self.env_name.clone(),
+											arguments: PathArguments::None,
+										})
+										.collect(),
+									},
+								})),
+								dot_token: Default::default(),
+								member: Member::Named(ident.clone()),
+							});
+						}
 						if self.deref {
 							a = Expr::Unary(ExprUnary {
 								attrs: vec![],
