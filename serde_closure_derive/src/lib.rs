@@ -691,13 +691,14 @@ impl<'a> State<'a> {
 					// structs/enum variants and functions. Use the case of the first char as a heuristic.
 					if !ident.to_string().chars().next().unwrap().is_uppercase() {
 						let _ = self.env_variables.insert(ident.clone());
-						let mut a = Expr::Path(ExprPath {
-							attrs: attrs.clone(),
-							qself: None,
-							path: path.clone(),
-						});
-						if self.env_struct {
-							a = Expr::Field(ExprField {
+						let mut a = if !self.env_struct {
+							Expr::Path(ExprPath {
+								attrs: attrs.clone(),
+								qself: None,
+								path: path.clone(),
+							})
+						} else {
+							Expr::Field(ExprField {
 								attrs: vec![],
 								base: Box::new(Expr::Path(ExprPath {
 									attrs: attrs.clone(),
@@ -713,8 +714,8 @@ impl<'a> State<'a> {
 								})),
 								dot_token: Default::default(),
 								member: Member::Named(ident.clone()),
-							});
-						}
+							})
+						};
 						if self.deref {
 							a = Expr::Unary(ExprUnary {
 								attrs: vec![],
