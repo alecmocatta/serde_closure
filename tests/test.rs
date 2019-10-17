@@ -93,6 +93,17 @@ fn fnonce() {
 		println!("{}", arg);
 	});
 	let _ = (c, c);
+
+	let reduce = String::new();
+	let tasks = vec![' '];
+	let tasks2 = tasks.clone();
+	let c = FnOnce!(move || -> String {
+		for task in tasks {
+			(|| reduce.push(task))();
+		}
+		reduce
+	});
+	assert_eq!(c(), tasks2.into_iter().collect::<String>());
 }
 
 #[test]
