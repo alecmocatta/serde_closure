@@ -716,15 +716,16 @@ impl<'a> State<'a> {
 							expr: Box::new(a),
 						});
 					} else {
-						*expr = parse2(quote_spanned!{ expr.span() =>
+						let mut path_segment: PathSegment = (*path_segment).clone();
+						path_segment.arguments = PathArguments::None;
+						*expr = parse2(quote_spanned! { expr.span() =>
 							({
-								let x = #expr;
-								if false {
-									let ::serde_closure::internal::ZeroSizedAssertion = unsafe { ::serde_closure::internal::core::mem::transmute(::serde_closure::internal::core::ptr::read(&x)) };
-								}
-								x
+								use #path_segment;
+								fn eq<T>(a: T, b: T) -> T { a }
+								eq(#expr, #expr)
 							})
-						}).unwrap();
+						})
+						.unwrap();
 					}
 				}
 			}
