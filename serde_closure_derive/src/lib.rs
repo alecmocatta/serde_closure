@@ -17,10 +17,10 @@ extern crate proc_macro;
 
 use proc_macro2::{Span, TokenStream};
 use proc_macro_hack::proc_macro_hack;
-use quote::{quote, ToTokens};
+use quote::{quote, quote_spanned, ToTokens};
 use std::{collections::HashSet, iter, iter::successors, str};
 use syn::{
-	parse::{Parse, ParseStream}, parse2, spanned::Spanned, token::Bracket, Arm, Block, Error, Expr, ExprArray, ExprAssign, ExprAssignOp, ExprAsync, ExprAwait, ExprBinary, ExprBlock, ExprBox, ExprBreak, ExprCall, ExprCast, ExprClosure, ExprField, ExprForLoop, ExprGroup, ExprIf, ExprIndex, ExprLet, ExprLoop, ExprMacro, ExprMatch, ExprMethodCall, ExprParen, ExprPath, ExprRange, ExprReference, ExprRepeat, ExprReturn, ExprStruct, ExprTry, ExprTryBlock, ExprTuple, ExprType, ExprUnary, ExprUnsafe, ExprWhile, ExprYield, FieldValue, Ident, Local, Member, Pat, PatBox, PatIdent, PatReference, PatSlice, PatTuple, PatTupleStruct, PatType, Path, PathArguments, PathSegment, Stmt, Type, TypeInfer, TypeReference, UnOp
+	parse::{Parse, ParseStream}, parse2, spanned::Spanned, token::Bracket, Arm, Error, Expr, ExprArray, ExprAssign, ExprAssignOp, ExprAsync, ExprAwait, ExprBinary, ExprBlock, ExprBox, ExprBreak, ExprCall, ExprCast, ExprClosure, ExprField, ExprForLoop, ExprGroup, ExprIf, ExprIndex, ExprLet, ExprLoop, ExprMacro, ExprMatch, ExprMethodCall, ExprParen, ExprPath, ExprRange, ExprReference, ExprRepeat, ExprReturn, ExprStruct, ExprTry, ExprTryBlock, ExprTuple, ExprType, ExprUnary, ExprUnsafe, ExprWhile, ExprYield, FieldValue, Ident, Local, Member, Pat, PatBox, PatIdent, PatReference, PatSlice, PatTuple, PatTupleStruct, PatType, Path, PathArguments, PathSegment, Stmt, Type, TypeInfer, TypeReference, UnOp
 };
 
 #[proc_macro_hack]
@@ -93,15 +93,13 @@ fn impl_fn_once(closure: Closure, kind: Kind) -> Result<TokenStream, Error> {
 	let capture = closure.capture.is_some();
 	let mut closure = Expr::Closure(closure);
 	let mut env_variables = HashSet::new();
-	let mut possible_env_variables = HashSet::new();
 	State::new(
 		&mut env_variables,
-		&mut possible_env_variables,
 		kind != Kind::FnOnce,
 		kind != Kind::FnOnce && !capture,
 		&env_name,
 	)
-	.expr(&mut closure);
+	.expr(&mut closure, false);
 	let mut env_variables: Vec<Ident> = env_variables.into_iter().collect();
 	env_variables.sort();
 	let env_variables = &env_variables;
@@ -109,12 +107,6 @@ fn impl_fn_once(closure: Closure, kind: Kind) -> Result<TokenStream, Error> {
 		.iter()
 		.map(|ident| ident.to_string())
 		.collect::<Vec<_>>();
-	let mut possible_env_variable_names = possible_env_variables
-		.into_iter()
-		.map(|ident| ident.to_string())
-		.collect::<Vec<_>>();
-	possible_env_variable_names.sort();
-	let possible_env_variable_names = &possible_env_variable_names;
 	let closure = if let Expr::Closure(closure) = closure {
 		closure
 	} else {
@@ -248,26 +240,6 @@ fn impl_fn_once(closure: Closure, kind: Kind) -> Result<TokenStream, Error> {
 		},
 	};
 
-	let assert_hack = if cfg!(feature = "assert-hack") {
-		Some(
-			parse2::<Block>(quote! { {
-				const fn size_of_val<T>(t: &T) -> usize {
-					size_of::<T>()
-				}
-				if size_of_val(&closure) != 0 {
-					extern "C" {
-						/// This function doesn't actually exist. It ensures a linking error if it isn't optimized out.
-						pub fn serde_closure_must_explicitly_capture_variable() -> !;
-					}
-					unsafe { serde_closure_must_explicitly_capture_variable() };
-				}
-			} })
-			.unwrap(),
-		)
-	} else {
-		None
-	};
-
 	let serialize_bounds = quote! { #(#type_params: Serialize,)* }.to_string();
 	let deserialize_bounds = quote! { #(#type_params: Deserialize<'de>,)* }.to_string();
 
@@ -275,7 +247,7 @@ fn impl_fn_once(closure: Closure, kind: Kind) -> Result<TokenStream, Error> {
 		{
 			mod #impls_name {
 				use ::serde_closure::{
-					internal::{self, is_phantom, panic, to_phantom},
+					internal::{self, is_phantom, to_phantom},
 					structs,
 				};
 				use self::internal::core::{
@@ -291,7 +263,7 @@ fn impl_fn_once(closure: Closure, kind: Kind) -> Result<TokenStream, Error> {
 					option::Option::{self, Some},
 				};
 				use self::internal::serde::{Deserialize, Serialize};
-				use self::internal::std::string::{String, ToString};
+				use self::internal::std::{process::abort, string::{String, ToString}};
 				const SOURCE: &str = #source;
 				#[derive(Serialize, Deserialize)]
 				#[serde(
@@ -312,7 +284,7 @@ fn impl_fn_once(closure: Closure, kind: Kind) -> Result<TokenStream, Error> {
 					}
 					pub fn with_f<F1>(self, f: F1) -> #name<#(#type_params,)* F1> where F1: Copy {
 						if size_of::<F1>() != 0 {
-							panic(&[#( #env_variable_names , )*], &[#( #possible_env_variable_names , )*], SOURCE);
+							abort();
 						}
 						#name {
 							#( #env_variables: self.#env_variables, )*
@@ -324,7 +296,7 @@ fn impl_fn_once(closure: Closure, kind: Kind) -> Result<TokenStream, Error> {
 					fn f(&self) -> F {
 						// This is safe as an F has already been materialized (so we
 						// know it isn't uninhabited), it's Copy, it's not Drop, and
-						// its size has been asserted to be zero.
+						// its size is zero.
 						unsafe { MaybeUninit::uninit().assume_init() }
 					}
 					fn strip_f(self) -> #name<#(#type_params,)* ()> {
@@ -434,23 +406,23 @@ fn impl_fn_once(closure: Closure, kind: Kind) -> Result<TokenStream, Error> {
 
 			let mut #ret_name = #impls_name::#name::new(#env_capture);
 			let #env_types_name = ::serde_closure::internal::to_phantom(&#ret_name);
-			// when impl_trait_in_bindings works could this be const?
-			// https://github.com/rust-lang/rust/issues/55272
+
 			let closure =
 				#(#attrs)* #asyncness move |mut #env_name: #env_type, (#(#input_pats,)*): (#(#input_types,)*)| #output {
 					if false {
 						::serde_closure::internal::is_phantom(& #env_deref, #env_types_name);
-						loop {}
 					}
 					#env_deconstruct
 					#body
 				};
+
 			if false {
 				#[allow(unreachable_code)]
 				let _ = closure(#ret_ref, loop {});
 			}
-
-			#assert_hack
+			if false {
+				let ::serde_closure::internal::ZeroSizedAssertion = unsafe { ::serde_closure::internal::core::mem::transmute(closure) };
+			}
 
 			::serde_closure::structs::#name::internal_new(#ret_name.with_f(closure))
 		}
@@ -486,20 +458,17 @@ fn pat_to_type(pat: &Pat) -> Type {
 struct State<'a> {
 	variables: HashSet<Ident>,
 	env_variables: &'a mut HashSet<Ident>,
-	possible_env_variables: &'a mut HashSet<Ident>,
 	env_struct: bool,
 	deref: bool,
 	env_name: &'a Ident,
 }
 impl<'a> State<'a> {
 	fn new(
-		env_variables: &'a mut HashSet<Ident>, possible_env_variables: &'a mut HashSet<Ident>,
-		env_struct: bool, deref: bool, env_name: &'a Ident,
+		env_variables: &'a mut HashSet<Ident>, env_struct: bool, deref: bool, env_name: &'a Ident,
 	) -> Self {
 		Self {
 			variables: HashSet::new(),
 			env_variables,
-			possible_env_variables,
 			env_struct,
 			deref,
 			env_name,
@@ -509,7 +478,6 @@ impl<'a> State<'a> {
 		State {
 			variables: self.variables.clone(),
 			env_variables: self.env_variables,
-			possible_env_variables: self.possible_env_variables,
 			env_struct: self.env_struct,
 			deref: self.deref,
 			env_name: self.env_name,
@@ -544,8 +512,8 @@ impl<'a> State<'a> {
 				}
 			}
 			Pat::Range(pat_range) => {
-				self.expr(&mut pat_range.lo);
-				self.expr(&mut pat_range.hi);
+				self.expr(&mut pat_range.lo, false);
+				self.expr(&mut pat_range.hi, false);
 			}
 			Pat::Struct(pat_struct) => {
 				for field in &mut pat_struct.fields {
@@ -561,23 +529,23 @@ impl<'a> State<'a> {
 			match stmt {
 				Stmt::Local(Local { pat, init, .. }) => {
 					if let Some((_, expr)) = init {
-						self.expr(expr);
+						self.expr(expr, false);
 					}
 					self.pat(pat);
 				}
 				Stmt::Expr(expr) | Stmt::Semi(expr, _) => {
-					self.expr(expr);
+					self.expr(expr, false);
 				}
 				Stmt::Item(_) => (),
 			}
 		}
 	}
 
-	fn expr(&mut self, expr: &mut Expr) {
+	fn expr(&mut self, expr: &mut Expr, is_func: bool) {
 		match expr {
 			Expr::Array(ExprArray { elems, .. }) | Expr::Tuple(ExprTuple { elems, .. }) => {
 				for elem in elems {
-					self.expr(elem);
+					self.expr(elem, false);
 				}
 			}
 			Expr::Assign(ExprAssign { left, right, .. })
@@ -593,8 +561,8 @@ impl<'a> State<'a> {
 				len: right,
 				..
 			}) => {
-				self.expr(left);
-				self.expr(right);
+				self.expr(left, false);
+				self.expr(right, false);
 			}
 			Expr::Async(ExprAsync { block, .. })
 			| Expr::Block(ExprBlock { block, .. })
@@ -622,17 +590,19 @@ impl<'a> State<'a> {
 			| Expr::Yield(ExprYield {
 				expr: Some(expr), ..
 			}) => {
-				self.expr(expr);
+				self.expr(expr, false);
 			}
-			Expr::Call(ExprCall {
-				func: receiver,
-				args,
-				..
-			})
-			| Expr::MethodCall(ExprMethodCall { receiver, args, .. }) => {
-				self.expr(receiver);
+			Expr::Call(ExprCall { func, args, .. }) => {
+				match &**func {
+					Expr::Path(ExprPath { path, .. })
+						if path.leading_colon.is_none() && path.segments.len() == 1 =>
+					{
+						self.expr(func, true)
+					}
+					_ => self.expr(func, false),
+				}
 				for arg in args {
-					self.expr(arg);
+					self.expr(arg, false);
 				}
 			}
 			Expr::Closure(ExprClosure { inputs, body, .. }) => {
@@ -640,12 +610,12 @@ impl<'a> State<'a> {
 				for input in inputs {
 					state.pat(input);
 				}
-				state.expr(body);
+				state.expr(body, false);
 			}
 			Expr::ForLoop(ExprForLoop {
 				pat, expr, body, ..
 			}) => {
-				self.expr(expr);
+				self.expr(expr, false);
 				let mut state = self.enter_block();
 				state.pat(pat);
 				state.block(&mut body.stmts);
@@ -658,19 +628,19 @@ impl<'a> State<'a> {
 			}) => {
 				{
 					let mut state = self.enter_block();
-					state.expr(cond);
+					state.expr(cond, false);
 					state.block(&mut then_branch.stmts);
 				}
 				if let Some((_, else_branch)) = else_branch {
-					self.expr(else_branch);
+					self.expr(else_branch, false);
 				}
 			}
 			Expr::Let(ExprLet { pat, expr, .. }) => {
-				self.expr(expr);
+				self.expr(expr, false);
 				self.pat(pat);
 			}
 			Expr::Match(ExprMatch { expr, arms, .. }) => {
-				self.expr(expr);
+				self.expr(expr, false);
 				for Arm {
 					pat, guard, body, ..
 				} in arms
@@ -678,18 +648,35 @@ impl<'a> State<'a> {
 					let mut state = self.enter_block();
 					state.pat(pat);
 					if let Some((_, guard)) = guard {
-						state.expr(guard);
+						state.expr(guard, false);
 					}
-					state.expr(body);
+					state.expr(body, false);
 				}
 			}
-			Expr::Path(ExprPath { attrs, path, .. }) if path.get_ident().is_some() => {
-				let ident = path.get_ident().unwrap();
-				// referencing a variable
+			Expr::MethodCall(ExprMethodCall { receiver, args, .. }) => {
+				self.expr(receiver, false);
+				for arg in args {
+					self.expr(arg, false);
+				}
+			}
+			Expr::Path(ExprPath { attrs, path, .. })
+				if path.leading_colon.is_none() && path.segments.len() == 1 =>
+			{
+				let path_segment = &path.segments.first().unwrap();
+				let ident = &path_segment.ident;
+				let has_path_arguments = if let PathArguments::None = path_segment.arguments {
+					false
+				} else {
+					true
+				};
 				if !self.variables.contains(ident) {
-					// We can't distinguish variables from types that are values, like unit/tuple
-					// structs/enum variants and functions. Use the case of the first char as a heuristic.
-					if !ident.to_string().chars().next().unwrap().is_uppercase() {
+					// Assume it's a variable, unless:
+					// * It starts with an upper-case letter, e.g. `Some`, OR
+					// * It's a function call, e.g. `my_function()`, OR
+					// * It has a turbofish, e.g. `my_function::<T>`
+					if !(ident.to_string().chars().next().unwrap().is_uppercase()
+						|| is_func || has_path_arguments)
+					{
 						let _ = self.env_variables.insert(ident.clone());
 						let mut a = if !self.env_struct {
 							Expr::Path(ExprPath {
@@ -729,36 +716,44 @@ impl<'a> State<'a> {
 							expr: Box::new(a),
 						});
 					} else {
-						let _ = self.possible_env_variables.insert(ident.clone());
+						*expr = parse2(quote_spanned!{ expr.span() =>
+							({
+								let x = #expr;
+								if false {
+									let ::serde_closure::internal::ZeroSizedAssertion = unsafe { ::serde_closure::internal::core::mem::transmute(::serde_closure::internal::core::ptr::read(&x)) };
+								}
+								x
+							})
+						}).unwrap();
 					}
 				}
 			}
 			Expr::Range(ExprRange { from, to, .. }) => {
 				if let Some(from) = from {
-					self.expr(from);
+					self.expr(from, false);
 				}
 				if let Some(to) = to {
-					self.expr(to);
+					self.expr(to, false);
 				}
 			}
 			Expr::Struct(ExprStruct { fields, rest, .. }) => {
 				for FieldValue { expr, .. } in fields {
-					self.expr(expr);
+					self.expr(expr, false);
 				}
 				if let Some(rest) = rest {
-					self.expr(rest);
+					self.expr(rest, false);
 				}
 			}
 			Expr::While(ExprWhile { cond, body, .. }) => {
 				let mut state = self.enter_block();
-				state.expr(cond);
+				state.expr(cond, false);
 				state.block(&mut body.stmts);
 			}
 			Expr::Macro(ExprMacro { ref mut mac, .. }) => {
 				let tokens = &mac.tokens;
 				if let Ok(expr) = parse2::<ExprCall>(quote! { self::abc(#tokens) }) {
 					let mut expr = Expr::Call(expr);
-					self.expr(&mut expr);
+					self.expr(&mut expr, false);
 					let expr = if let Expr::Call(expr) = expr {
 						expr
 					} else {

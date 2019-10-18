@@ -378,6 +378,63 @@ fn upcast() {
 	closure("test");
 }
 
+#[test]
+fn capturing() {
+	let a = String::new();
+	let b = move || a;
+	let c = 0u8;
+	#[rustfmt::skip]
+	let closure = FnOnce!(move || {
+		(b)();
+		// b();
+		// (b::<>)();
+		c;
+		// c::<>;
+		size_of::<()>;
+		capturing;
+		capturing::<>;
+		(capturing);
+		capturing();
+		(capturing)();
+		self::capturing();
+		(self::capturing)();
+	});
+	let _ = (closure.clone(), closure);
+
+	let a = 0u16;
+	let b = move || a;
+	let closure = FnOnce!(move || {
+		(b)();
+	});
+	let _ = (closure, closure);
+
+	struct Foo;
+	#[allow(non_camel_case_types)]
+	struct foo;
+	let c = 0u8;
+	#[rustfmt::skip]
+	let closure = FnOnce!(move || {
+		// (b)();
+		// b();
+		// (b::<>)();
+		c;
+		// c::<>;
+		size_of::<()>;
+		// capturing;
+		capturing::<>;
+		// (capturing);
+		capturing();
+		// (capturing)();
+		self::capturing();
+		(self::capturing)();
+		Foo;
+		foo::<>;
+	});
+	let _ = (closure, closure);
+	serialize(&closure);
+	fn serialize<T: Serialize>(_t: &T) {}
+}
+
 mod no_prelude {
 	#![no_implicit_prelude]
 

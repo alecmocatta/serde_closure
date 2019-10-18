@@ -29,6 +29,3 @@ proc-macro2 = { version = "1.0.1", default-features = false, features = ["span-l
 proc-macro-hack = "0.5"
 quote = { version = "1.0.2", default-features = false }
 syn = { version = "1.0.5", default-features = false, features = ["clone-impls", "full", "parsing", "printing", "proc-macro"] }
-
-[features]
-assert-hack = []
