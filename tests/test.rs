@@ -392,9 +392,9 @@ fn capturing() {
 		// c::<>;
 		size_of::<()>;
 		capturing;
-		capturing::<>;
+		// capturing::<>;
 		(capturing);
-		capturing();
+		// capturing();
 		(capturing)();
 		self::capturing();
 		(self::capturing)();
@@ -412,6 +412,7 @@ fn capturing() {
 	#[allow(non_camel_case_types)]
 	struct foo;
 	let c = 0u8;
+	// let FooVar = Foo;
 	#[rustfmt::skip]
 	let closure = FnOnce!(move || {
 		// (b)();
@@ -421,6 +422,7 @@ fn capturing() {
 		// c::<>;
 		size_of::<()>;
 		// capturing;
+		// FooVar;
 		capturing::<>;
 		// (capturing);
 		capturing();
@@ -429,6 +431,11 @@ fn capturing() {
 		(self::capturing)();
 		Foo;
 		foo::<>;
+		if true {
+			Some(0u8)
+		} else {
+			None
+		}
 	});
 	let _ = (closure, closure);
 	serialize(&closure);

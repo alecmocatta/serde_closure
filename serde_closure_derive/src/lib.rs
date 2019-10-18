@@ -9,7 +9,7 @@
 //! See [`serde_closure`](https://docs.rs/serde_closure/) for
 //! documentation.
 
-#![doc(html_root_url = "https://docs.rs/serde_closure_derive/0.2.4")]
+#![doc(html_root_url = "https://docs.rs/serde_closure_derive/0.2.5")]
 #![feature(proc_macro_diagnostic)]
 #![allow(non_snake_case)] // due to proc-macro-hack can't apply this directly
 
@@ -716,15 +716,16 @@ impl<'a> State<'a> {
 							expr: Box::new(a),
 						});
 					} else {
-						*expr = parse2(quote_spanned!{ expr.span() =>
+						let mut path_segment: PathSegment = (*path_segment).clone();
+						path_segment.arguments = PathArguments::None;
+						*expr = parse2(quote_spanned! { expr.span() =>
 							({
-								let x = #expr;
-								if false {
-									let ::serde_closure::internal::ZeroSizedAssertion = unsafe { ::serde_closure::internal::core::mem::transmute(::serde_closure::internal::core::ptr::read(&x)) };
-								}
-								x
+								use #path_segment;
+								fn eq<T>(a: T, b: T) -> T { a }
+								eq(#expr, #expr)
 							})
-						}).unwrap();
+						})
+						.unwrap();
 					}
 				}
 			}
