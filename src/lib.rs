@@ -160,7 +160,7 @@
 //! [`serde_traitobject`](https://github.com/alecmocatta/serde_traitobject)
 //! would help you to send serializable closures between them.
 
-#![doc(html_root_url = "https://docs.rs/serde_closure/0.2.3")]
+#![doc(html_root_url = "https://docs.rs/serde_closure/0.2.4")]
 #![feature(unboxed_closures, fn_traits)]
 #![warn(
 	missing_copy_implementations,
