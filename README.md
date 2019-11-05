@@ -4,7 +4,7 @@
 [![MIT / Apache 2.0 licensed](https://img.shields.io/crates/l/serde_closure.svg?maxAge=2592000)](#License)
 [![Build Status](https://dev.azure.com/alecmocatta/serde_closure/_apis/build/status/tests?branchName=master)](https://dev.azure.com/alecmocatta/serde_closure/_build/latest?branchName=master)
 
-[Docs](https://docs.rs/serde_closure/0.2.5)
+[Docs](https://docs.rs/serde_closure/0.2.6)
 
 Serializable and debuggable closures.
 
@@ -30,9 +30,9 @@ requires nightly Rust for the `unboxed_closures` and `fn_traits` features (rust
 issue [#29625](https://github.com/rust-lang/rust/issues/29625)).
 
  * There are three macros,
-   [`FnOnce`](https://docs.rs/serde_closure/0.2.5/serde_closure/macro.FnOnce.html),
-   [`FnMut`](https://docs.rs/serde_closure/0.2.5/serde_closure/macro.FnMut.html)
-   and [`Fn`](https://docs.rs/serde_closure/0.2.5/serde_closure/macro.Fn.html),
+   [`FnOnce`](https://docs.rs/serde_closure/0.2.6/serde_closure/macro.FnOnce.html),
+   [`FnMut`](https://docs.rs/serde_closure/0.2.6/serde_closure/macro.FnMut.html)
+   and [`Fn`](https://docs.rs/serde_closure/0.2.6/serde_closure/macro.Fn.html),
    corresponding to the three types of Rust closure.
  * Wrap your closure with one of the macros and it will now implement `Copy`,
    `Clone`, `PartialEq`, `Eq`, `Hash`, `PartialOrd`, `Ord`, `Serialize`,
@@ -86,43 +86,44 @@ FnMut!(move |name| {
 
 ## Limitations
 There are currently some minor limitations:
- * Captured variables with an uppercase first letter need to be explicitly
-   captured. If you see a panic like the following, fix the case of the
-   variable.
+
+ * Use of types that start with a lowercase letter need might need to be
+   disambiguated from variables. If you see an error like the following, fix the
+   case of the type, or append it with `my_struct::<>` to disambiguate.
 ```text
-thread 'main' panicked at 'A variable with an upper case first letter was implicitly captured.
-Unfortunately due to current limitations it must be captured explicitly.
-Please refer to the README.', tests/test.rs:205:10
-note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace.
-```
- * Functions called inside the closure might need to be disambiguated. This
-   also affects enum unit and tuple variants with a lowercase first letter.
-   If you see an error like either of the following, qualify `my_function`
-   as `self::my_function` and `my_enum_variant` as
-   `MyEnum::my_enum_variant`.
-```text
-error[E0277]: the trait bound `fn(usize) -> std::option::Option<usize> {my_function::<usize>}: fnref::_IMPL_DESERIALIZE_FOR_Fn::_serde::Serialize` is not satisfied
-   --> tests/test.rs:327:10
+error[E0308]: mismatched types
+   --> tests/test.rs:450:4
     |
-314 |     fn unfold<A, St, F>(initial_state: St, f: F) -> Unfold<St, F>
-    |        ------
-315 |     where
-316 |         F: Fn(&mut St) -> Option<A> + Serialize,
-    |                                       --------- required by this bound in `fnref::unfold`
-...
-327 |     let _ = unfold(0_usize, Fn!(|acc: &mut _| my_function(*acc)));
-    |             ^^^^^^ the trait `fnref::_IMPL_DESERIALIZE_FOR_Fn::_serde::Serialize` is not implemented for `fn(usize) -> std::option::Option<usize> {my_function::<usize>}`
-```
-```text
-error[E0530]: function parameters cannot shadow tuple variants
-   --> tests/test.rs:173:47
+449 |       FnOnce!(move || {
+    |  _____-
+450 | |         my_struct;
+    | |         ^^^^^^^^^ expected struct `serde_closure::internal::a_variable`, found struct `my_struct`
+451 | |     });
+    | |______- in this macro invocation
     |
-173 |     FnMut!(|acc: &mut _| my_enum_variant(*acc))
-    |     ---------------------^^^^^^^^^^^^^^^-------
-    |     |                    |
-    |     |                    cannot be named the same as a tuple variant
-    |     in this macro invocation
+    = note: expected type `serde_closure::internal::a_variable`
+               found type `my_struct`
 ```
+
+ * Use of variables that start with an uppercase letter might need to be
+   disambiguated from types. If you see an error like the following, fix the
+   case of the variable, or wrap it with `(MyVariable)` to disambiguate.
+```text
+error: imports cannot refer to local variables
+   --> tests/test.rs:422:3
+    |
+417 |       FnOnce!(move || {
+    |  _____-
+418 | |         MyVariable;
+    | |         ^^^^^^^^^^
+419 | |     });
+    | |______- in this macro invocation
+    |
+```
+
+ * Functions and closures called inside the closure might need to be
+   disambiguated. This can be done the same as above with `function::<>` for
+   functions and `(closure)` for closures.
 
 ## Serializing between processes
 
@@ -140,7 +141,10 @@ processes running the same binary.
 For example, if you have multiple forks of a process, or the same binary running
 on each of a cluster of machines,
 [`serde_traitobject`](https://github.com/alecmocatta/serde_traitobject) would
-help you to send serializable closures between them.
+help you to send serializable closures between them. This can be done by
+upcasting the closure to a `Box<dyn serde_traitobject::Fn()>`, which is
+automatically serializable and deserializable with
+[`serde`](https://github.com/serde-rs/serde).
 
 ## License
 Licensed under either of
