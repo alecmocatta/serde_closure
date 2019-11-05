@@ -391,11 +391,11 @@ fn capturing() {
 		c;
 		// c::<>;
 		size_of::<()>;
-		capturing;
+		// capturing;
 		// capturing::<>;
-		(capturing);
-		// capturing();
-		(capturing)();
+		// (capturing);
+		capturing();
+		// (capturing)();
 		self::capturing();
 		(self::capturing)();
 	});
