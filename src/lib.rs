@@ -249,7 +249,7 @@ pub mod internal {
 pub mod structs {
 	//! Structs representing a serializable closure, created by the
 	//! [`FnOnce`](macro@FnOnce), [`FnMut`](macro@FnMut) and [`Fn`](macro@Fn)
-	//! macros. They Implement [`std::ops::FnOnce`], [`std::ops::FnMut`] and
+	//! macros. They implement [`std::ops::FnOnce`], [`std::ops::FnMut`] and
 	//! [`std::ops::Fn`] respectively, as well as [`Debug`](std::fmt::Debug),
 	//! [`Serialize`](serde::Serialize) and [`Deserialize`](serde::Deserialize),
 	//! and various convenience traits.
