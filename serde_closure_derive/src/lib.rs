@@ -410,7 +410,7 @@ fn impl_fn_once(closure: Closure, kind: Kind) -> Result<TokenStream, Error> {
 			#[allow(unreachable_code)]
 			{
 				if false {
-					#(#env_variables = loop {};)*
+					#(*&#env_variables = loop {};)*
 				}
 			}
 

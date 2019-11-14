@@ -442,6 +442,23 @@ fn capturing() {
 	fn serialize<T: Serialize>(_t: &T) {}
 }
 
+#[test]
+fn multiple_async() {
+	let x = 10usize;
+
+	let _left = async {
+		FnOnce!(move || {
+			let _ = x;
+		})
+	};
+
+	let _right = async {
+		FnOnce!(move || {
+			let _ = x;
+		})
+	};
+}
+
 mod no_prelude {
 	#![no_implicit_prelude]
 
