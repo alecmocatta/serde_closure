@@ -404,15 +404,23 @@ fn impl_fn_once(closure: Closure, kind: Kind) -> Result<TokenStream, Error> {
 				#fn_impl
 			}
 
+			// This asserts that inferred env variables aren't nameable types.
 			{
 				#(let #env_variables = ::serde_closure::internal::a_variable;)*
 			}
-			#[allow(unreachable_code)]
-			{
-				if false {
-					#(*&#env_variables = loop {};)*
-				}
+			// This asserts that inferred env variables aren't types with >=1 type parameters.
+			if false {
+				#(&#env_variables::<>;)*
 			}
+			// TODO: Work out how to assert env variables aren't unnameable types with 0 type parameters.
+			// This might work in the future, but today it causes borrowck issues:
+			// https://users.rust-lang.org/t/statically-asserting-an-ident-is-a-variable-not-a-type/34619
+			// #[allow(unreachable_code)]
+			// {
+			// 	if false {
+			// 		#(#env_variables = loop {};)*
+			// 	}
+			// }
 
 			let mut #ret_name = #impls_name::#name::new(#env_capture);
 			let #env_types_name = ::serde_closure::internal::to_phantom(&#ret_name);
