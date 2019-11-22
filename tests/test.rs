@@ -459,6 +459,15 @@ fn multiple_async() {
 	};
 }
 
+#[test]
+fn static_var() {
+	static STATIC: String = String::new();
+
+	FnMut!(move || {
+		let a = &STATIC;
+	});
+}
+
 mod no_prelude {
 	#![no_implicit_prelude]
 
