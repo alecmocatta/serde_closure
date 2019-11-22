@@ -17,10 +17,10 @@ extern crate proc_macro;
 
 use proc_macro2::{Span, TokenStream};
 use proc_macro_hack::proc_macro_hack;
-use quote::{quote, quote_spanned, ToTokens};
-use std::{collections::HashSet, iter, iter::successors, str};
+use quote::{quote, ToTokens};
+use std::{collections::HashSet, iter, iter::successors, mem::take, str};
 use syn::{
-	parse::{Parse, ParseStream}, parse2, spanned::Spanned, token::Bracket, Arm, Error, Expr, ExprArray, ExprAssign, ExprAssignOp, ExprAsync, ExprAwait, ExprBinary, ExprBlock, ExprBox, ExprBreak, ExprCall, ExprCast, ExprClosure, ExprField, ExprForLoop, ExprGroup, ExprIf, ExprIndex, ExprLet, ExprLoop, ExprMacro, ExprMatch, ExprMethodCall, ExprParen, ExprPath, ExprRange, ExprReference, ExprRepeat, ExprReturn, ExprStruct, ExprTry, ExprTryBlock, ExprTuple, ExprType, ExprUnary, ExprUnsafe, ExprWhile, ExprYield, FieldValue, Ident, Local, Member, Pat, PatBox, PatIdent, PatReference, PatSlice, PatTuple, PatTupleStruct, PatType, Path, PathArguments, PathSegment, Stmt, Type, TypeInfer, TypeReference, UnOp
+	parse::{Parse, ParseStream}, parse2, spanned::Spanned, token::Bracket, Arm, Block, Error, Expr, ExprArray, ExprAssign, ExprAssignOp, ExprAsync, ExprAwait, ExprBinary, ExprBlock, ExprBox, ExprBreak, ExprCall, ExprCast, ExprClosure, ExprField, ExprForLoop, ExprGroup, ExprIf, ExprIndex, ExprLet, ExprLoop, ExprMacro, ExprMatch, ExprMethodCall, ExprParen, ExprPath, ExprRange, ExprReference, ExprRepeat, ExprReturn, ExprStruct, ExprTry, ExprTryBlock, ExprTuple, ExprType, ExprUnary, ExprUnsafe, ExprWhile, ExprYield, FieldValue, Ident, Local, Member, Pat, PatBox, PatIdent, PatReference, PatSlice, PatTuple, PatTupleStruct, PatType, Path, PathArguments, PathSegment, Stmt, Type, TypeInfer, TypeReference, UnOp
 };
 
 #[proc_macro_hack]
@@ -88,18 +88,33 @@ fn impl_fn_once(closure: Closure, kind: Kind) -> Result<TokenStream, Error> {
 	let impls_name = Ident::new("__serde_closure_impls", span);
 
 	let _ = closure.env;
-	let closure = closure.closure;
+	let mut closure = closure.closure;
 	let source = closure.to_token_stream().to_string();
 	let capture = closure.capture.is_some();
+	// Convert closure to use block so any not_env_variables can be asserted.
+	closure.body = Box::new(match *closure.body {
+		Expr::Block(block) => Expr::Block(block),
+		expr => Expr::Block(ExprBlock {
+			attrs: vec![],
+			label: None,
+			block: Block {
+				brace_token: Default::default(),
+				stmts: vec![Stmt::Expr(expr)],
+			},
+		}),
+	});
 	let mut closure = Expr::Closure(closure);
 	let mut env_variables = HashSet::new();
+	let mut not_env_variables = HashSet::new();
 	State::new(
 		&mut env_variables,
+		&mut not_env_variables,
 		kind != Kind::FnOnce,
 		kind != Kind::FnOnce && !capture,
 		&env_name,
 	)
 	.expr(&mut closure, false);
+	assert!(not_env_variables.is_empty());
 	let mut env_variables: Vec<Ident> = env_variables.into_iter().collect();
 	env_variables.sort();
 	let env_variables = &env_variables;
@@ -476,17 +491,20 @@ fn pat_to_type(pat: &Pat) -> Type {
 struct State<'a> {
 	variables: HashSet<Ident>,
 	env_variables: &'a mut HashSet<Ident>,
+	not_env_variables: &'a mut HashSet<Ident>,
 	env_struct: bool,
 	deref: bool,
 	env_name: &'a Ident,
 }
 impl<'a> State<'a> {
 	fn new(
-		env_variables: &'a mut HashSet<Ident>, env_struct: bool, deref: bool, env_name: &'a Ident,
+		env_variables: &'a mut HashSet<Ident>, not_env_variables: &'a mut HashSet<Ident>,
+		env_struct: bool, deref: bool, env_name: &'a Ident,
 	) -> Self {
 		Self {
 			variables: HashSet::new(),
 			env_variables,
+			not_env_variables,
 			env_struct,
 			deref,
 			env_name,
@@ -496,6 +514,7 @@ impl<'a> State<'a> {
 		State {
 			variables: self.variables.clone(),
 			env_variables: self.env_variables,
+			not_env_variables: self.not_env_variables,
 			env_struct: self.env_struct,
 			deref: self.deref,
 			env_name: self.env_name,
@@ -542,21 +561,31 @@ impl<'a> State<'a> {
 		}
 	}
 
-	fn block(&mut self, stmts: &mut [Stmt]) {
-		for stmt in stmts {
-			match stmt {
-				Stmt::Local(Local { pat, init, .. }) => {
-					if let Some((_, expr)) = init {
+	fn block(&mut self, stmts: &mut Vec<Stmt>) {
+		*stmts = take(stmts)
+			.into_iter()
+			.flat_map(|mut stmt| {
+				match &mut stmt {
+					Stmt::Local(Local { pat, init, .. }) => {
+						if let Some((_, expr)) = init {
+							self.expr(expr, false);
+						}
+						self.pat(pat);
+					}
+					Stmt::Expr(expr) | Stmt::Semi(expr, _) => {
 						self.expr(expr, false);
 					}
-					self.pat(pat);
+					Stmt::Item(_) => (),
 				}
-				Stmt::Expr(expr) | Stmt::Semi(expr, _) => {
-					self.expr(expr, false);
+				let not_env_variables = take(self.not_env_variables).into_iter();
+				let mut vec = Vec::with_capacity(2);
+				if not_env_variables.len() != 0 {
+					vec.push(parse2(quote! { { #(use #not_env_variables;)* } }).unwrap());
 				}
-				Stmt::Item(_) => (),
-			}
-		}
+				vec.push(stmt);
+				vec
+			})
+			.collect();
 	}
 
 	fn expr(&mut self, expr: &mut Expr, is_func: bool) {
@@ -734,15 +763,7 @@ impl<'a> State<'a> {
 							expr: Box::new(a),
 						});
 					} else {
-						let ident = (*ident).clone();
-						*expr = parse2(quote_spanned! { expr.span() =>
-							({
-								use #ident;
-								fn eq<T>(a: T, b: T) -> T { a }
-								eq(#expr, #expr)
-							})
-						})
-						.unwrap();
+						let _ = self.not_env_variables.insert(ident.clone());
 					}
 				}
 			}
