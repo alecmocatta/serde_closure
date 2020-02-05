@@ -9,7 +9,7 @@
 //! See [`serde_closure`](https://docs.rs/serde_closure/) for
 //! documentation.
 
-#![doc(html_root_url = "https://docs.rs/serde_closure_derive/0.2.9")]
+#![doc(html_root_url = "https://docs.rs/serde_closure_derive/0.2.10")]
 #![feature(proc_macro_diagnostic)]
 #![allow(non_snake_case)] // due to proc-macro-hack can't apply this directly
 
@@ -261,6 +261,7 @@ fn impl_fn_once(closure: Closure, kind: Kind) -> Result<TokenStream, Error> {
 	Ok(quote! {
 		{
 			mod #impls_name {
+				#![allow(warnings)]
 				use ::serde_closure::{
 					internal::{self, is_phantom, to_phantom},
 					structs,
@@ -420,12 +421,16 @@ fn impl_fn_once(closure: Closure, kind: Kind) -> Result<TokenStream, Error> {
 			}
 
 			// This asserts that inferred env variables aren't nameable types.
+			#[allow(warnings)]
 			{
 				#(let #env_variables = ::serde_closure::internal::a_variable;)*
 			}
 			// This asserts that inferred env variables aren't types with >=1 type parameters.
-			if false {
-				#(&#env_variables::<>;)*
+			#[allow(warnings)]
+			{
+				if false {
+					#(&#env_variables::<>;)*
+				}
 			}
 			// TODO: Work out how to assert env variables aren't unnameable types with 0 type parameters.
 			// This might work in the future, but today it causes borrowck issues:
@@ -442,19 +447,24 @@ fn impl_fn_once(closure: Closure, kind: Kind) -> Result<TokenStream, Error> {
 
 			let closure =
 				#(#attrs)* #asyncness move |mut #env_name: #env_type, (#(#input_pats,)*): (#(#input_types,)*)| #output {
-					if false {
-						::serde_closure::internal::is_phantom(& #env_deref, #env_types_name);
+					#[allow(warnings)]
+					{
+						if false {
+							::serde_closure::internal::is_phantom(& #env_deref, #env_types_name);
+						}
 					}
 					#env_deconstruct
 					#body
 				};
 
-			if false {
-				#[allow(unreachable_code)]
-				let _ = closure(#ret_ref, loop {});
-			}
-			if false {
-				let ::serde_closure::internal::ZeroSizedAssertion = unsafe { ::serde_closure::internal::core::mem::transmute(closure) };
+			#[allow(warnings)]
+			{
+				if false {
+					let _ = closure(#ret_ref, loop {});
+				}
+				if false {
+					let ::serde_closure::internal::ZeroSizedAssertion = unsafe { ::serde_closure::internal::core::mem::transmute(closure) };
+				}
 			}
 
 			::serde_closure::structs::#name::internal_new(#ret_name.with_f(closure))
@@ -580,7 +590,10 @@ impl<'a> State<'a> {
 				let not_env_variables = take(self.not_env_variables).into_iter();
 				let mut vec = Vec::with_capacity(2);
 				if not_env_variables.len() != 0 {
-					vec.push(parse2(quote! { { #(use #not_env_variables;)* } }).unwrap());
+					vec.push(
+						parse2(quote! { #[allow(warnings)] { #(use #not_env_variables;)* } })
+							.unwrap(),
+					);
 				}
 				vec.push(stmt);
 				vec
