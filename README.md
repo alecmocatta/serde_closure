@@ -2,7 +2,7 @@
 
 [![Crates.io](https://img.shields.io/crates/v/serde_closure.svg?maxAge=86400)](https://crates.io/crates/serde_closure)
 [![MIT / Apache 2.0 licensed](https://img.shields.io/crates/l/serde_closure.svg?maxAge=2592000)](#License)
-[![Build Status](https://dev.azure.com/alecmocatta/serde_closure/_apis/build/status/tests?branchName=master)](https://dev.azure.com/alecmocatta/serde_closure/_build/latest?branchName=master)
+[![Build Status](https://dev.azure.com/alecmocatta/serde_closure/_apis/build/status/tests?branchName=master)](https://dev.azure.com/alecmocatta/serde_closure/_build/latest?definitionId=10&branchName=master)
 
 [Docs](https://docs.rs/serde_closure/0.2.11)
 
