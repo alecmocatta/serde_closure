@@ -440,7 +440,8 @@ fn impl_fn_once(closure: Closure, kind: Kind) -> Result<TokenStream, Error> {
 			// 	}
 			// }
 
-			let #ret_name = #impls_name::#name::new(#env_capture);
+			#[allow(unused_mut)]
+			let mut #ret_name = #impls_name::#name::new(#env_capture);
 			let #env_types_name = ::serde_closure::internal::to_phantom(&#ret_name);
 
 			let closure =

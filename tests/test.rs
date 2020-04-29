@@ -101,6 +101,7 @@ fn fnonce() {
 	let tasks2 = tasks.clone();
 	let c = FnOnce!(move || -> String {
 		for task in tasks {
+			#[allow(clippy::redundant_closure_call)]
 			(|| reduce.push(task))();
 		}
 		reduce
