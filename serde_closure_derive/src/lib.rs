@@ -181,7 +181,7 @@ fn impl_fn_once(closure: Closure, kind: Kind) -> Result<TokenStream, Error> {
 	let env_deconstruct = if kind == Kind::FnOnce {
 		Some(
 			parse2::<Stmt>(
-				quote! { let #impls_name::#name{#(mut #env_variables ,)*..} = #env_name; },
+				quote! { #[allow(unused_mut)] let #impls_name::#name{#(mut #env_variables ,)*..} = #env_name; },
 			)
 			.unwrap(),
 		)
@@ -261,7 +261,7 @@ fn impl_fn_once(closure: Closure, kind: Kind) -> Result<TokenStream, Error> {
 	Ok(quote! {
 		{
 			mod #impls_name {
-				#![allow(warnings)]
+				#![allow(warnings, unsafe_code)]
 				use ::serde_closure::{
 					internal::{self, is_phantom, to_phantom},
 					structs,
@@ -427,10 +427,8 @@ fn impl_fn_once(closure: Closure, kind: Kind) -> Result<TokenStream, Error> {
 			}
 			// This asserts that inferred env variables aren't types with >=1 type parameters.
 			#[allow(warnings)]
-			{
-				if false {
-					#(&#env_variables::<>;)*
-				}
+			if false {
+				#(&#env_variables::<>;)*
 			}
 			// TODO: Work out how to assert env variables aren't unnameable types with 0 type parameters.
 			// This might work in the future, but today it causes borrowck issues:
@@ -442,22 +440,20 @@ fn impl_fn_once(closure: Closure, kind: Kind) -> Result<TokenStream, Error> {
 			// 	}
 			// }
 
-			let mut #ret_name = #impls_name::#name::new(#env_capture);
+			let #ret_name = #impls_name::#name::new(#env_capture);
 			let #env_types_name = ::serde_closure::internal::to_phantom(&#ret_name);
 
 			let closure =
-				#(#attrs)* #asyncness move |mut #env_name: #env_type, (#(#input_pats,)*): (#(#input_types,)*)| #output {
+				#(#attrs)* #asyncness move |#env_name: #env_type, (#(#input_pats,)*): (#(#input_types,)*)| #output {
 					#[allow(warnings)]
-					{
-						if false {
-							::serde_closure::internal::is_phantom(& #env_deref, #env_types_name);
-						}
+					if false {
+						::serde_closure::internal::is_phantom(& #env_deref, #env_types_name);
 					}
 					#env_deconstruct
 					#body
 				};
 
-			#[allow(warnings)]
+			#[allow(warnings, unsafe_code)]
 			{
 				if false {
 					let _ = closure(#ret_ref, loop {});

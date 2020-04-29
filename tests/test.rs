@@ -1,3 +1,5 @@
+#![deny(unsafe_code)] // TODO: make this forbid when unsafe in a macro doesn't trigger it (def_site?)
+
 use serde::{de::DeserializeOwned, Serialize};
 use std::{fmt::Debug, mem::size_of};
 
@@ -373,7 +375,7 @@ fn source() {
 
 #[test]
 fn upcast() {
-	let closure = FnOnce!(|x: &str| "test");
+	let closure = FnOnce!(|_x: &str| "test");
 	let closure: Box<dyn FnOnce(&str) -> &'static str + Send + Sync> = Box::new(closure);
 	closure("test");
 }
@@ -385,6 +387,7 @@ fn capturing() {
 	let c = 0u8;
 	#[rustfmt::skip]
 	let closure = FnOnce!(move || {
+		#![allow(path_statements)]
 		(b)();
 		// b();
 		// (b::<>)();
@@ -415,6 +418,7 @@ fn capturing() {
 	// let FooVar = Foo;
 	#[rustfmt::skip]
 	let closure = FnOnce!(move || {
+		#![allow(path_statements)]
 		// (b)();
 		// b();
 		// (b::<>)();
@@ -464,7 +468,7 @@ fn static_var() {
 	static STATIC: String = String::new();
 
 	FnMut!(move || {
-		let a = &STATIC;
+		let _a = &STATIC;
 	});
 }
 
