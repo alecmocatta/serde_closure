@@ -179,7 +179,7 @@
 )] // from https://github.com/rust-unofficial/patterns/blob/master/anti_patterns/deny-warnings.md
 #![allow(clippy::inline_always)]
 
-use proc_macro_hack::proc_macro_hack;
+// use proc_macro_hack::proc_macro_hack;
 
 /// Macro that wraps a closure, evaluating to a [`FnOnce`](structs::FnOnce)
 /// struct that implements [`std::ops::FnOnce`], [`Debug`](std::fmt::Debug),
@@ -187,7 +187,6 @@ use proc_macro_hack::proc_macro_hack;
 /// various convenience traits.
 ///
 /// See the [readme](self) for examples.
-#[proc_macro_hack(fake_call_site)]
 pub use serde_closure_derive::FnOnce;
 
 /// Macro that wraps a closure, evaluating to a [`FnMut`](structs::FnMut) struct
@@ -196,7 +195,6 @@ pub use serde_closure_derive::FnOnce;
 /// various convenience traits.
 ///
 /// See the [readme](self) for examples.
-#[proc_macro_hack(fake_call_site)]
 pub use serde_closure_derive::FnMut;
 
 /// Macro that wraps a closure, evaluating to a [`Fn`](structs::Fn) struct that
@@ -205,7 +203,6 @@ pub use serde_closure_derive::FnMut;
 /// various convenience traits.
 ///
 /// See the [readme](self) for examples.
-#[proc_macro_hack(fake_call_site)]
 pub use serde_closure_derive::Fn;
 
 #[doc(hidden)]

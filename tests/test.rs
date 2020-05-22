@@ -1,10 +1,10 @@
 #![deny(unsafe_code)] // TODO: make this forbid when unsafe in a macro doesn't trigger it (def_site?)
+#![allow(clippy::no_effect, clippy::double_parens)]
 
 use serde::{de::DeserializeOwned, Serialize};
 use std::{fmt::Debug, mem::size_of};
 
-#[macro_use]
-extern crate serde_closure;
+use serde_closure::{Fn, FnMut, FnOnce};
 
 #[test]
 fn fn_ptr_size() {
