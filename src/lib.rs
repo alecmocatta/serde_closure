@@ -1,7 +1,8 @@
 //! Serializable and debuggable closures.
 //!
-//! **[Crates.io](https://crates.io/crates/serde_closure) │
-//! [Repo](https://github.com/alecmocatta/serde_closure)**
+//! <p style="font-family: 'Fira Sans',sans-serif;padding:0.3em 0"><strong>
+//! <a href="https://crates.io/crates/serde_closure">📦&nbsp;&nbsp;Crates.io</a>&nbsp;&nbsp;│&nbsp;&nbsp;<a href="https://github.com/alecmocatta/serde_closure">📑&nbsp;&nbsp;GitHub</a>&nbsp;&nbsp;│&nbsp;&nbsp;<a href="https://constellation.zulipchat.com/#narrow/stream/213236-subprojects">💬&nbsp;&nbsp;Chat</a>
+//! </strong></p>
 //!
 //! This library provides macros that wrap closures to make them serializable
 //! and debuggable.
@@ -164,7 +165,7 @@
 //! automatically serializable and deserializable with
 //! [`serde`](https://github.com/serde-rs/serde).
 
-#![doc(html_root_url = "https://docs.rs/serde_closure/0.2.11")]
+#![doc(html_root_url = "https://docs.rs/serde_closure/0.2.12")]
 #![feature(unboxed_closures, fn_traits)]
 #![warn(
 	missing_copy_implementations,
@@ -178,8 +179,6 @@
 	clippy::pedantic
 )] // from https://github.com/rust-unofficial/patterns/blob/master/anti_patterns/deny-warnings.md
 #![allow(clippy::inline_always)]
-
-// use proc_macro_hack::proc_macro_hack;
 
 /// Macro that wraps a closure, evaluating to a [`FnOnce`](structs::FnOnce)
 /// struct that implements [`std::ops::FnOnce`], [`Debug`](std::fmt::Debug),

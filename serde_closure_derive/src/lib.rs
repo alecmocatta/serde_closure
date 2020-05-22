@@ -1,7 +1,8 @@
 //! Serializable and debuggable closures.
 //!
-//! **[Crates.io](https://crates.io/crates/serde_closure) │
-//! [Repo](https://github.com/alecmocatta/serde_closure)**
+//! <p style="font-family: 'Fira Sans',sans-serif;padding:0.3em 0"><strong>
+//! <a href="https://crates.io/crates/serde_closure">📦&nbsp;&nbsp;Crates.io</a>&nbsp;&nbsp;│&nbsp;&nbsp;<a href="https://github.com/alecmocatta/serde_closure">📑&nbsp;&nbsp;GitHub</a>&nbsp;&nbsp;│&nbsp;&nbsp;<a href="https://constellation.zulipchat.com/#narrow/stream/213236-subprojects">💬&nbsp;&nbsp;Chat</a>
+//! </strong></p>
 //!
 //! This library provides macros that wrap closures to make them serializable
 //! and debuggable.
@@ -9,7 +10,7 @@
 //! See [`serde_closure`](https://docs.rs/serde_closure/) for
 //! documentation.
 
-#![doc(html_root_url = "https://docs.rs/serde_closure_derive/0.2.11")]
+#![doc(html_root_url = "https://docs.rs/serde_closure_derive/0.2.12")]
 #![feature(proc_macro_diagnostic)]
 
 use proc_macro2::{Span, TokenStream};
