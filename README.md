@@ -2,9 +2,9 @@
 
 [![Crates.io](https://img.shields.io/crates/v/serde_closure.svg?maxAge=86400)](https://crates.io/crates/serde_closure)
 [![MIT / Apache 2.0 licensed](https://img.shields.io/crates/l/serde_closure.svg?maxAge=2592000)](#License)
-[![Build Status](https://dev.azure.com/alecmocatta/serde_closure/_apis/build/status/tests?branchName=master)](https://dev.azure.com/alecmocatta/serde_closure/_build/latest?definitionId=10&branchName=master)
+[![Build Status](https://dev.azure.com/alecmocatta/serde_closure/_apis/build/status/tests?branchName=master)](https://dev.azure.com/alecmocatta/serde_closure/_build?definitionId=10)
 
-[Docs](https://docs.rs/serde_closure/0.2.11)
+[📖 Docs](https://docs.rs/serde_closure/0.2.12) | [💬 Chat](https://constellation.zulipchat.com/#narrow/stream/213236-subprojects)
 
 Serializable and debuggable closures.
 
@@ -30,9 +30,9 @@ requires nightly Rust for the `unboxed_closures` and `fn_traits` features (rust
 issue [#29625](https://github.com/rust-lang/rust/issues/29625)).
 
  * There are three macros,
-   [`FnOnce`](https://docs.rs/serde_closure/0.2.11/serde_closure/macro.FnOnce.html),
-   [`FnMut`](https://docs.rs/serde_closure/0.2.11/serde_closure/macro.FnMut.html)
-   and [`Fn`](https://docs.rs/serde_closure/0.2.11/serde_closure/macro.Fn.html),
+   [`FnOnce`](https://docs.rs/serde_closure/0.2.12/serde_closure/macro.FnOnce.html),
+   [`FnMut`](https://docs.rs/serde_closure/0.2.12/serde_closure/macro.FnMut.html)
+   and [`Fn`](https://docs.rs/serde_closure/0.2.12/serde_closure/macro.Fn.html),
    corresponding to the three types of Rust closure.
  * Wrap your closure with one of the macros and it will now implement `Copy`,
    `Clone`, `PartialEq`, `Eq`, `Hash`, `PartialOrd`, `Ord`, `Serialize`,

@@ -1,7 +1,8 @@
 //! Serializable and debuggable closures.
 //!
-//! **[Crates.io](https://crates.io/crates/serde_closure) │
-//! [Repo](https://github.com/alecmocatta/serde_closure)**
+//! <p style="font-family: 'Fira Sans',sans-serif;padding:0.3em 0"><strong>
+//! <a href="https://crates.io/crates/serde_closure">📦&nbsp;&nbsp;Crates.io</a>&nbsp;&nbsp;│&nbsp;&nbsp;<a href="https://github.com/alecmocatta/serde_closure">📑&nbsp;&nbsp;GitHub</a>&nbsp;&nbsp;│&nbsp;&nbsp;<a href="https://constellation.zulipchat.com/#narrow/stream/213236-subprojects">💬&nbsp;&nbsp;Chat</a>
+//! </strong></p>
 //!
 //! This library provides macros that wrap closures to make them serializable
 //! and debuggable.
@@ -9,35 +10,34 @@
 //! See [`serde_closure`](https://docs.rs/serde_closure/) for
 //! documentation.
 
-#![doc(html_root_url = "https://docs.rs/serde_closure_derive/0.2.11")]
+#![doc(html_root_url = "https://docs.rs/serde_closure_derive/0.2.12")]
 #![feature(proc_macro_diagnostic)]
-#![allow(non_snake_case)] // due to proc-macro-hack can't apply this directly
-
-extern crate proc_macro;
 
 use proc_macro2::{Span, TokenStream};
-use proc_macro_hack::proc_macro_hack;
 use quote::{quote, ToTokens};
 use std::{collections::HashSet, iter, iter::successors, mem::take, str};
 use syn::{
 	parse::{Parse, ParseStream}, parse2, spanned::Spanned, token::Bracket, Arm, Block, Error, Expr, ExprArray, ExprAssign, ExprAssignOp, ExprAsync, ExprAwait, ExprBinary, ExprBlock, ExprBox, ExprBreak, ExprCall, ExprCast, ExprClosure, ExprField, ExprForLoop, ExprGroup, ExprIf, ExprIndex, ExprLet, ExprLoop, ExprMacro, ExprMatch, ExprMethodCall, ExprParen, ExprPath, ExprRange, ExprReference, ExprRepeat, ExprReturn, ExprStruct, ExprTry, ExprTryBlock, ExprTuple, ExprType, ExprUnary, ExprUnsafe, ExprWhile, ExprYield, FieldValue, Ident, Local, Member, Pat, PatBox, PatIdent, PatReference, PatSlice, PatTuple, PatTupleStruct, PatType, Path, PathArguments, PathSegment, Stmt, Type, TypeInfer, TypeReference, UnOp
 };
 
-#[proc_macro_hack]
+#[proc_macro]
+#[allow(non_snake_case)]
 pub fn Fn(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
 	syn::parse::<Closure>(input)
 		.and_then(|closure| impl_fn_once(closure, Kind::Fn))
 		.unwrap_or_else(|err| err.to_compile_error())
 		.into()
 }
-#[proc_macro_hack]
+#[proc_macro]
+#[allow(non_snake_case)]
 pub fn FnMut(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
 	syn::parse::<Closure>(input)
 		.and_then(|closure| impl_fn_once(closure, Kind::FnMut))
 		.unwrap_or_else(|err| err.to_compile_error())
 		.into()
 }
-#[proc_macro_hack]
+#[proc_macro]
+#[allow(non_snake_case)]
 pub fn FnOnce(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
 	syn::parse::<Closure>(input)
 		.and_then(|closure| impl_fn_once(closure, Kind::FnOnce))
