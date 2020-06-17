@@ -10,7 +10,7 @@
 //! See [`serde_closure`](https://docs.rs/serde_closure/) for
 //! documentation.
 
-#![doc(html_root_url = "https://docs.rs/serde_closure_derive/0.2.12")]
+#![doc(html_root_url = "https://docs.rs/serde_closure_derive/0.2.13")]
 #![feature(proc_macro_diagnostic)]
 
 use proc_macro2::{Span, TokenStream};
@@ -94,6 +94,8 @@ fn impl_fn_once(closure: Closure, kind: Kind) -> Result<TokenStream, Error> {
 	// Convert closure to use block so any not_env_variables can be asserted.
 	closure.body = Box::new(match *closure.body {
 		Expr::Block(block) => Expr::Block(block),
+		// Avoid clippy::unused_unit
+		Expr::Tuple(tuple) if tuple.elems.is_empty() => Expr::Tuple(tuple),
 		expr => Expr::Block(ExprBlock {
 			attrs: vec![],
 			label: None,
@@ -133,6 +135,11 @@ fn impl_fn_once(closure: Closure, kind: Kind) -> Result<TokenStream, Error> {
 	let capture = closure.capture;
 	let output = closure.output;
 	let body = closure.body;
+	// Avoid clippy::unused_unit
+	let body = match *body {
+		Expr::Tuple(tuple) if tuple.elems.is_empty() => None,
+		expr => Some(expr),
+	};
 	let input_pats = closure.inputs.iter().map(|input| match input {
 		Pat::Type(pat_type) => (*pat_type.pat).clone(),
 		pat => (*pat).clone(),
@@ -289,13 +296,13 @@ fn impl_fn_once(closure: Closure, kind: Kind) -> Result<TokenStream, Error> {
 				pub struct #name<#(#type_params,)* F> {
 					#( pub #env_variables: #type_params, )*
 					#[serde(skip)]
-					f: PhantomData<F>
+					__serde_closure_marker: PhantomData<F>
 				}
 				impl<#(#type_params,)*> #name<#(#type_params,)* ()> {
 					pub fn new(#( #env_variables: #type_params, )*) -> Self {
 						Self {
 							#( #env_variables ,)*
-							f: PhantomData
+							__serde_closure_marker: PhantomData
 						}
 					}
 					pub fn with_f<F1>(self, f: F1) -> #name<#(#type_params,)* F1> where F1: Copy {
@@ -304,7 +311,7 @@ fn impl_fn_once(closure: Closure, kind: Kind) -> Result<TokenStream, Error> {
 						}
 						#name {
 							#( #env_variables: self.#env_variables, )*
-							f: PhantomData
+							__serde_closure_marker: PhantomData
 						}
 					}
 				}
@@ -318,7 +325,7 @@ fn impl_fn_once(closure: Closure, kind: Kind) -> Result<TokenStream, Error> {
 					fn strip_f(self) -> #name<#(#type_params,)* ()> {
 						#name {
 							#( #env_variables: self.#env_variables, )*
-							f: PhantomData
+							__serde_closure_marker: PhantomData
 						}
 					}
 					fn strip_f_ref(&self) -> &#name<#(#type_params,)* ()> {
@@ -338,7 +345,7 @@ fn impl_fn_once(closure: Closure, kind: Kind) -> Result<TokenStream, Error> {
 					fn clone(&self) -> Self {
 						Self {
 							#( #env_variables: self.#env_variables.clone(), )*
-							f: PhantomData,
+							__serde_closure_marker: PhantomData,
 						}
 					}
 				}

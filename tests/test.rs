@@ -1,5 +1,13 @@
 #![deny(unsafe_code)] // TODO: make this forbid when unsafe in a macro doesn't trigger it (def_site?)
-#![allow(clippy::no_effect, clippy::double_parens)]
+#![warn(
+	trivial_numeric_casts,
+	unused_import_braces,
+	unused_qualifications,
+	unused_results,
+	unreachable_pub,
+	clippy::pedantic
+)]
+#![allow(clippy::too_many_lines, clippy::many_single_char_names)]
 
 use serde::{de::DeserializeOwned, Serialize};
 use std::{fmt::Debug, mem::size_of};
@@ -156,6 +164,20 @@ fn fnmut() {
 		assert_eq!(deserialized, deserialized2);
 		assert_eq!(f, deserialized2);
 	}
+	fn unfold<A, St, F>(initial_state: St, f: F) -> Unfold<St, F>
+	where
+		F: FnMut(&mut St) -> Option<A> + Serialize,
+	{
+		Unfold {
+			_f: f,
+			_state: initial_state,
+		}
+	}
+	struct Unfold<St, F> {
+		_f: F,
+		_state: St,
+	}
+
 	let (mut a, mut b) = (3_usize, String::from("qwerty"));
 	{
 		assert_eq!(
@@ -196,19 +218,6 @@ fn fnmut() {
 		}
 	);
 	test(a);
-	fn unfold<A, St, F>(initial_state: St, f: F) -> Unfold<St, F>
-	where
-		F: FnMut(&mut St) -> Option<A> + Serialize,
-	{
-		Unfold {
-			_f: f,
-			_state: initial_state,
-		}
-	}
-	struct Unfold<St, F> {
-		_f: F,
-		_state: St,
-	}
 	let _ = unfold(0_usize, FnMut!(|acc: &mut _| Some(*acc)));
 	let x = 123_usize;
 	let c = FnMut!(move |arg: String| {
@@ -302,6 +311,20 @@ fn fnref() {
 		assert_eq!(deserialized, deserialized2);
 		assert_eq!(f, deserialized2);
 	}
+	fn unfold<A, St, F>(initial_state: St, f: F) -> Unfold<St, F>
+	where
+		F: Fn(&mut St) -> Option<A> + Serialize,
+	{
+		Unfold {
+			_f: f,
+			_state: initial_state,
+		}
+	}
+	struct Unfold<St, F> {
+		_f: F,
+		_state: St,
+	}
+
 	let (a, b) = (3_usize, String::from("qwerty"));
 	{
 		assert_eq!(
@@ -348,19 +371,6 @@ fn fnref() {
 		format!("{}{}{}{}{}{}{}{}", a, b, c, d, e, f, g, h)
 	});
 	test(x);
-	fn unfold<A, St, F>(initial_state: St, f: F) -> Unfold<St, F>
-	where
-		F: Fn(&mut St) -> Option<A> + Serialize,
-	{
-		Unfold {
-			_f: f,
-			_state: initial_state,
-		}
-	}
-	struct Unfold<St, F> {
-		_f: F,
-		_state: St,
-	}
 	let _ = unfold(0_usize, Fn!(|acc: &mut _| Some(*acc)));
 	let x = 123_usize;
 	let c = Fn!(move |arg: String| {
@@ -378,17 +388,22 @@ fn source() {
 fn upcast() {
 	let closure = FnOnce!(|_x: &str| "test");
 	let closure: Box<dyn FnOnce(&str) -> &'static str + Send + Sync> = Box::new(closure);
-	closure("test");
+	let _ = closure("test");
 }
 
 #[test]
 fn capturing() {
+	struct Foo;
+	#[allow(non_camel_case_types)]
+	struct foo;
+	fn serialize<T: Serialize>(_t: &T) {}
+
 	let a = String::new();
 	let b = move || a;
-	let c = 0u8;
+	let c = 0_u8;
 	#[rustfmt::skip]
 	let closure = FnOnce!(move || {
-		#![allow(path_statements)]
+		#![allow(path_statements, unused_results, unused_qualifications, clippy::double_parens, clippy::no_effect)]
 		(b)();
 		// b();
 		// (b::<>)();
@@ -405,26 +420,25 @@ fn capturing() {
 	});
 	let _ = (closure.clone(), closure);
 
-	let a = 0u16;
-	let b = move || a;
+	let d = 0_u16;
+	let e = move || d;
+	// TODO: move to closure, rustfmt loses it currently though
+	#[allow(clippy::double_parens, unused_results)]
 	let closure = FnOnce!(move || {
-		(b)();
+		(e)();
 	});
 	let _ = (closure, closure);
 
-	struct Foo;
-	#[allow(non_camel_case_types)]
-	struct foo;
-	let c = 0u8;
+	let f = 0_u8;
 	// let FooVar = Foo;
 	#[rustfmt::skip]
 	let closure = FnOnce!(move || {
-		#![allow(path_statements)]
-		// (b)();
-		// b();
-		// (b::<>)();
-		c;
-		// c::<>;
+		#![allow(path_statements, unused_results, unused_qualifications, clippy::no_effect)]
+		// (e)();
+		// e();
+		// (e::<>)();
+		f;
+		// f::<>;
 		size_of::<()>;
 		// capturing;
 		// FooVar;
@@ -437,19 +451,18 @@ fn capturing() {
 		Foo;
 		foo::<>;
 		if true {
-			Some(0u8)
+			Some(0_u8)
 		} else {
 			None
 		}
 	});
 	let _ = (closure, closure);
 	serialize(&closure);
-	fn serialize<T: Serialize>(_t: &T) {}
 }
 
 #[test]
 fn multiple_async() {
-	let x = 10usize;
+	let x = 10_usize;
 
 	let _left = async {
 		FnOnce!(move || {
@@ -481,4 +494,9 @@ mod no_prelude {
 		let a = ::std::string::String::new();
 		::serde_closure::FnOnce!(|| a);
 	}
+}
+
+#[test]
+fn unused_unit() {
+	let _ = FnOnce!(|| ());
 }
