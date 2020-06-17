@@ -296,13 +296,13 @@ fn impl_fn_once(closure: Closure, kind: Kind) -> Result<TokenStream, Error> {
 				pub struct #name<#(#type_params,)* F> {
 					#( pub #env_variables: #type_params, )*
 					#[serde(skip)]
-					f: PhantomData<F>
+					__serde_closure_marker: PhantomData<F>
 				}
 				impl<#(#type_params,)*> #name<#(#type_params,)* ()> {
 					pub fn new(#( #env_variables: #type_params, )*) -> Self {
 						Self {
 							#( #env_variables ,)*
-							f: PhantomData
+							__serde_closure_marker: PhantomData
 						}
 					}
 					pub fn with_f<F1>(self, f: F1) -> #name<#(#type_params,)* F1> where F1: Copy {
@@ -311,7 +311,7 @@ fn impl_fn_once(closure: Closure, kind: Kind) -> Result<TokenStream, Error> {
 						}
 						#name {
 							#( #env_variables: self.#env_variables, )*
-							f: PhantomData
+							__serde_closure_marker: PhantomData
 						}
 					}
 				}
@@ -325,7 +325,7 @@ fn impl_fn_once(closure: Closure, kind: Kind) -> Result<TokenStream, Error> {
 					fn strip_f(self) -> #name<#(#type_params,)* ()> {
 						#name {
 							#( #env_variables: self.#env_variables, )*
-							f: PhantomData
+							__serde_closure_marker: PhantomData
 						}
 					}
 					fn strip_f_ref(&self) -> &#name<#(#type_params,)* ()> {
@@ -345,7 +345,7 @@ fn impl_fn_once(closure: Closure, kind: Kind) -> Result<TokenStream, Error> {
 					fn clone(&self) -> Self {
 						Self {
 							#( #env_variables: self.#env_variables.clone(), )*
-							f: PhantomData,
+							__serde_closure_marker: PhantomData,
 						}
 					}
 				}
