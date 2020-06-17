@@ -1,6 +1,6 @@
 [package]
 name = "serde_closure_derive"
-version = "0.2.12"
+version = "0.2.13"
 license = "MIT OR Apache-2.0"
 authors = ["Alec Mocatta <alec@mocatta.net>"]
 categories = ["development-tools","encoding","rust-patterns","network-programming"]
@@ -14,7 +14,7 @@ See https://crates.io/crates/serde_closure for documentation.
 """
 repository = "https://github.com/alecmocatta/serde_closure"
 homepage = "https://github.com/alecmocatta/serde_closure"
-documentation = "https://docs.rs/serde_closure/0.2.12"
+documentation = "https://docs.rs/serde_closure/0.2.13"
 edition = "2018"
 
 [badges]
