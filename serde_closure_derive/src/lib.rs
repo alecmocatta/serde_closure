@@ -94,6 +94,8 @@ fn impl_fn_once(closure: Closure, kind: Kind) -> Result<TokenStream, Error> {
 	// Convert closure to use block so any not_env_variables can be asserted.
 	closure.body = Box::new(match *closure.body {
 		Expr::Block(block) => Expr::Block(block),
+		// Avoid clippy::unused_unit
+		Expr::Tuple(tuple) if tuple.elems.is_empty() => Expr::Tuple(tuple),
 		expr => Expr::Block(ExprBlock {
 			attrs: vec![],
 			label: None,
@@ -133,6 +135,11 @@ fn impl_fn_once(closure: Closure, kind: Kind) -> Result<TokenStream, Error> {
 	let capture = closure.capture;
 	let output = closure.output;
 	let body = closure.body;
+	// Avoid clippy::unused_unit
+	let body = match *body {
+		Expr::Tuple(tuple) if tuple.elems.is_empty() => None,
+		expr => Some(expr),
+	};
 	let input_pats = closure.inputs.iter().map(|input| match input {
 		Pat::Type(pat_type) => (*pat_type.pat).clone(),
 		pat => (*pat).clone(),
