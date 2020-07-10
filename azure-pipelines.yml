@@ -14,9 +14,10 @@ jobs:
     endpoint: alecmocatta
     default:
       rust_toolchain: nightly
-      rust_lint_toolchain: nightly-2020-06-10
+      rust_lint_toolchain: nightly-2020-07-09
       rust_flags: ''
-      rust_features: ''
+      rust_features_clippy: ';nightly'
+      rust_features: 'nightly'
       rust_target_check: ''
       rust_target_build: ''
       rust_target_run: ''

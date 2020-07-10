@@ -165,8 +165,8 @@
 //! automatically serializable and deserializable with
 //! [`serde`](https://github.com/serde-rs/serde).
 
-#![doc(html_root_url = "https://docs.rs/serde_closure/0.2.13")]
-#![feature(unboxed_closures, fn_traits)]
+#![doc(html_root_url = "https://docs.rs/serde_closure/0.2.14")]
+#![cfg_attr(feature = "nightly", feature(unboxed_closures, fn_traits))]
 #![warn(
 	missing_copy_implementations,
 	missing_debug_implementations,
@@ -203,6 +203,14 @@ pub use serde_closure_derive::FnMut;
 ///
 /// See the [readme](self) for examples.
 pub use serde_closure_derive::Fn;
+
+/// Attribute macro that can be applied to items to generalize trait bounds
+/// [`FnOnce(…)`](std::ops::FnOnce), [`FnMut(…)`](std::ops::FnMut) and
+/// [`Fn(…)`](std::ops::Fn) to [`traits::FnOnce<(…)>`](traits::FnOnce),
+/// [`traits::FnMut<(…)>`](traits::FnMut) and [`traits::Fn<(…)>`](traits::Fn).
+///
+/// See `tests/stable.rs` for examples.
+pub use serde_closure_derive::generalize;
 
 #[doc(hidden)]
 pub mod internal {
@@ -242,29 +250,132 @@ pub mod internal {
 	pub struct a_variable;
 }
 
+pub mod traits {
+	//! Supertraits of [`std::ops::FnOnce`], [`std::ops::FnMut`] and
+	//! [`std::ops::Fn`] that are usable on stable Rust. They are implemented
+	//! by closures created by the [`FnOnce`](macro@super::FnOnce),
+	//! [`FnMut`](macro@super::FnMut) and [`Fn`](macro@super::Fn) macros.
+	//!
+	//! See the [readme](super) for examples.
+
+	#![allow(non_snake_case)]
+
+	use std::ops;
+
+	/// Supertrait of [`std::ops::FnOnce`] that is usable on stable Rust. It is
+	/// implemented by closures created by the [`FnOnce`](macro@super::FnOnce)
+	/// macro.
+	///
+	/// See the [readme](super) for examples.
+	pub trait FnOnce<Args> {
+		/// The returned type after the call operator is used.
+		type Output;
+
+		/// Performs the call operation.
+		fn call_once(self, args: Args) -> Self::Output;
+	}
+
+	/// Supertrait of [`std::ops::FnMut`] that is usable on stable Rust. It is
+	/// implemented by closures created by the [`FnMut`](macro@super::FnMut)
+	/// macro.
+	///
+	/// See the [readme](super) for examples.
+	pub trait FnMut<Args>: FnOnce<Args> {
+		/// Performs the call operation.
+		fn call_mut(&mut self, args: Args) -> Self::Output;
+	}
+
+	/// Supertrait of [`std::ops::Fn`] that is usable on stable Rust. It is
+	/// implemented by closures created by the [`Fn`](macro@super::Fn)
+	/// macro.
+	///
+	/// See the [readme](super) for examples.
+	pub trait Fn<Args>: FnMut<Args> {
+		/// Performs the call operation.
+		fn call(&self, args: Args) -> Self::Output;
+	}
+
+	macro_rules! fn_once {
+		($($t:ident)*) => {
+			impl<T, $($t,)* O> FnOnce<($($t,)*)> for T
+			where
+				T: ops::FnOnce($($t,)*) -> O,
+			{
+				type Output = O;
+
+				fn call_once(self, ($($t,)*): ($($t,)*)) -> Self::Output {
+					self($($t,)*)
+				}
+			}
+			fn_once!(@recurse $($t)*);
+		};
+		(@recurse $first:ident $($t:ident)*) => {
+			fn_once!($($t)*);
+		};
+		(@recurse) => {};
+	}
+	fn_once!(A B C D E F G H I J K L);
+
+	macro_rules! fn_mut {
+		($($t:ident)*) => {
+			impl<T, $($t,)* O> FnMut<($($t,)*)> for T
+			where
+				T: ops::FnMut($($t,)*) -> O,
+			{
+				fn call_mut(&mut self, ($($t,)*): ($($t,)*)) -> Self::Output {
+					self($($t,)*)
+				}
+			}
+			fn_mut!(@recurse $($t)*);
+		};
+		(@recurse $first:ident $($t:ident)*) => {
+			fn_mut!($($t)*);
+		};
+		(@recurse) => {};
+	}
+	fn_mut!(A B C D E F G H I J K L);
+
+	macro_rules! fn_ref {
+		($($t:ident)*) => {
+			impl<T, $($t,)* O> Fn<($($t,)*)> for T
+			where
+				T: ops::Fn($($t,)*) -> O,
+			{
+				fn call(&self, ($($t,)*): ($($t,)*)) -> Self::Output {
+					self($($t,)*)
+				}
+			}
+			fn_ref!(@recurse $($t)*);
+		};
+		(@recurse $first:ident $($t:ident)*) => {
+			fn_ref!($($t)*);
+		};
+		(@recurse) => {};
+	}
+	fn_ref!(A B C D E F G H I J K L);
+}
+
 pub mod structs {
 	//! Structs representing a serializable closure, created by the
-	//! [`FnOnce`](macro@FnOnce), [`FnMut`](macro@FnMut) and [`Fn`](macro@Fn)
-	//! macros. They implement [`std::ops::FnOnce`], [`std::ops::FnMut`] and
-	//! [`std::ops::Fn`] respectively, as well as [`Debug`](std::fmt::Debug),
-	//! [`Serialize`](serde::Serialize) and [`Deserialize`](serde::Deserialize),
-	//! and various convenience traits.
+	//! [`FnOnce`](macro@super::FnOnce), [`FnMut`](macro@super::FnMut) and
+	//! [`Fn`](macro@super::Fn) macros. They implement [`std::ops::FnOnce`],
+	//! [`std::ops::FnMut`] and [`std::ops::Fn`] respectively, as well as
+	//! [`Debug`](std::fmt::Debug), [`Serialize`](serde::Serialize) and
+	//! [`Deserialize`](serde::Deserialize), and various convenience traits.
 	//!
-	//! See the [readme](self) for examples.
+	//! See the [readme](super) for examples.
 
 	use serde::{Deserialize, Serialize};
-	use std::{
-		fmt::{self, Debug}, ops
-	};
+	use std::fmt::{self, Debug};
 
 	use super::internal;
 
 	/// A struct representing a serializable closure, created by the
-	/// [`FnOnce`](macro@FnOnce) macro. Implements [`std::ops::FnOnce`],
+	/// [`FnOnce`](macro@super::FnOnce) macro. Implements [`std::ops::FnOnce`],
 	/// [`Debug`], [`Serialize`] and [`Deserialize`], and various convenience
 	/// traits.
 	///
-	/// See the [readme](self) for examples.
+	/// See the [readme](super) for examples.
 	#[derive(Copy, Clone, PartialEq, Eq, Hash, PartialOrd, Ord, Serialize, Deserialize)]
 	#[serde(transparent)]
 	pub struct FnOnce<F> {
@@ -281,7 +392,20 @@ pub mod structs {
 			Self { f }
 		}
 	}
-	impl<F, I> ops::FnOnce<I> for FnOnce<F>
+
+	#[cfg(not(feature = "nightly"))]
+	impl<F, I> super::traits::FnOnce<I> for FnOnce<F>
+	where
+		F: internal::FnOnce<I>,
+	{
+		type Output = F::Output;
+		#[inline(always)]
+		fn call_once(self, args: I) -> Self::Output {
+			self.f.call_once(args)
+		}
+	}
+	#[cfg(feature = "nightly")]
+	impl<F, I> std::ops::FnOnce<I> for FnOnce<F>
 	where
 		F: internal::FnOnce<I>,
 	{
@@ -291,6 +415,7 @@ pub mod structs {
 			self.f.call_once(args)
 		}
 	}
+
 	impl<F> Debug for FnOnce<F>
 	where
 		F: Debug,
@@ -301,11 +426,11 @@ pub mod structs {
 	}
 
 	/// A struct representing a serializable closure, created by the
-	/// [`FnMut`](macro@FnMut) macro. Implements [`std::ops::FnMut`],
+	/// [`FnMut`](macro@super::FnMut) macro. Implements [`std::ops::FnMut`],
 	/// [`Debug`], [`Serialize`] and [`Deserialize`], and various convenience
 	/// traits.
 	///
-	/// See the [readme](self) for examples.
+	/// See the [readme](super) for examples.
 	#[derive(Copy, Clone, PartialEq, Eq, Hash, PartialOrd, Ord, Serialize, Deserialize)]
 	#[serde(transparent)]
 	pub struct FnMut<F> {
@@ -322,7 +447,20 @@ pub mod structs {
 			Self { f }
 		}
 	}
-	impl<F, I> ops::FnOnce<I> for FnMut<F>
+
+	#[cfg(not(feature = "nightly"))]
+	impl<F, I> super::traits::FnOnce<I> for FnMut<F>
+	where
+		F: internal::FnOnce<I>,
+	{
+		type Output = F::Output;
+		#[inline(always)]
+		fn call_once(self, args: I) -> Self::Output {
+			self.f.call_once(args)
+		}
+	}
+	#[cfg(feature = "nightly")]
+	impl<F, I> std::ops::FnOnce<I> for FnMut<F>
 	where
 		F: internal::FnOnce<I>,
 	{
@@ -332,7 +470,19 @@ pub mod structs {
 			self.f.call_once(args)
 		}
 	}
-	impl<F, I> ops::FnMut<I> for FnMut<F>
+
+	#[cfg(not(feature = "nightly"))]
+	impl<F, I> super::traits::FnMut<I> for FnMut<F>
+	where
+		F: internal::FnMut<I>,
+	{
+		#[inline(always)]
+		fn call_mut(&mut self, args: I) -> Self::Output {
+			self.f.call_mut(args)
+		}
+	}
+	#[cfg(feature = "nightly")]
+	impl<F, I> std::ops::FnMut<I> for FnMut<F>
 	where
 		F: internal::FnMut<I>,
 	{
@@ -341,6 +491,7 @@ pub mod structs {
 			self.f.call_mut(args)
 		}
 	}
+
 	impl<F> Debug for FnMut<F>
 	where
 		F: Debug,
@@ -351,10 +502,10 @@ pub mod structs {
 	}
 
 	/// A struct representing a serializable closure, created by the
-	/// [`Fn`](macro@Fn) macro. Implements [`std::ops::Fn`], [`Debug`],
+	/// [`Fn`](macro@super::Fn) macro. Implements [`std::ops::Fn`], [`Debug`],
 	/// [`Serialize`] and [`Deserialize`], and various convenience traits.
 	///
-	/// See the [readme](self) for examples.
+	/// See the [readme](super) for examples.
 	#[derive(Copy, Clone, PartialEq, Eq, Hash, PartialOrd, Ord, Serialize, Deserialize)]
 	#[serde(transparent)]
 	pub struct Fn<F> {
@@ -371,7 +522,20 @@ pub mod structs {
 			Self { f }
 		}
 	}
-	impl<F, I> ops::FnOnce<I> for Fn<F>
+
+	#[cfg(not(feature = "nightly"))]
+	impl<F, I> super::traits::FnOnce<I> for Fn<F>
+	where
+		F: internal::FnOnce<I>,
+	{
+		type Output = F::Output;
+		#[inline(always)]
+		fn call_once(self, args: I) -> Self::Output {
+			self.f.call_once(args)
+		}
+	}
+	#[cfg(feature = "nightly")]
+	impl<F, I> std::ops::FnOnce<I> for Fn<F>
 	where
 		F: internal::FnOnce<I>,
 	{
@@ -381,7 +545,19 @@ pub mod structs {
 			self.f.call_once(args)
 		}
 	}
-	impl<F, I> ops::FnMut<I> for Fn<F>
+
+	#[cfg(not(feature = "nightly"))]
+	impl<F, I> super::traits::FnMut<I> for Fn<F>
+	where
+		F: internal::FnMut<I>,
+	{
+		#[inline(always)]
+		fn call_mut(&mut self, args: I) -> Self::Output {
+			self.f.call_mut(args)
+		}
+	}
+	#[cfg(feature = "nightly")]
+	impl<F, I> std::ops::FnMut<I> for Fn<F>
 	where
 		F: internal::FnMut<I>,
 	{
@@ -390,7 +566,19 @@ pub mod structs {
 			self.f.call_mut(args)
 		}
 	}
-	impl<F, I> ops::Fn<I> for Fn<F>
+
+	#[cfg(not(feature = "nightly"))]
+	impl<F, I> super::traits::Fn<I> for Fn<F>
+	where
+		F: internal::Fn<I>,
+	{
+		#[inline(always)]
+		fn call(&self, args: I) -> Self::Output {
+			self.f.call(args)
+		}
+	}
+	#[cfg(feature = "nightly")]
+	impl<F, I> std::ops::Fn<I> for Fn<F>
 	where
 		F: internal::Fn<I>,
 	{
@@ -399,6 +587,7 @@ pub mod structs {
 			self.f.call(args)
 		}
 	}
+
 	impl<F> Debug for Fn<F>
 	where
 		F: Debug,
