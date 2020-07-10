@@ -2,7 +2,7 @@
 
 [package]
 name = "serde_closure"
-version = "0.2.13"
+version = "0.2.14"
 license = "MIT OR Apache-2.0"
 authors = ["Alec Mocatta <alec@mocatta.net>"]
 categories = ["development-tools","encoding","rust-patterns","network-programming"]
@@ -14,7 +14,7 @@ This library provides macros that wrap closures to make them serializable and de
 """
 repository = "https://github.com/alecmocatta/serde_closure"
 homepage = "https://github.com/alecmocatta/serde_closure"
-documentation = "https://docs.rs/serde_closure/0.2.13"
+documentation = "https://docs.rs/serde_closure"
 readme = "README.md"
 edition = "2018"
 
@@ -27,7 +27,7 @@ default = ["nightly"]
 nightly = []
 
 [dependencies]
-serde_closure_derive = { version = "=0.2.13", path = "serde_closure_derive" }
+serde_closure_derive = { version = "=0.2.14", path = "serde_closure_derive" }
 serde = { version = "1.0", features = ["derive"] }
 
 [dev-dependencies]

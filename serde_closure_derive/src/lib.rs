@@ -7,10 +7,10 @@
 //! This library provides macros that wrap closures to make them serializable
 //! and debuggable.
 //!
-//! See [`serde_closure`](https://docs.rs/serde_closure/) for
+//! See [`serde_closure`](https://docs.rs/serde_closure) for
 //! documentation.
 
-#![doc(html_root_url = "https://docs.rs/serde_closure_derive/0.2.13")]
+#![doc(html_root_url = "https://docs.rs/serde_closure_derive/0.2.14")]
 
 use proc_macro2::{Span, TokenStream};
 use quote::{quote, ToTokens};
