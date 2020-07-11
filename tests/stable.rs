@@ -22,19 +22,19 @@ impl<T: ?Sized> Various for T where
 {
 }
 
-#[serde_closure::generalize]
+#[serde_closure::desugar]
 trait Pool {
 	type Pool;
 
 	fn spawn<F, T>(&self, work: F) -> Result<T, ()>
 	where
-		F: FnOnce(&Self::Pool) -> T + 'static;
+		F: traits::FnOnce(&Self::Pool) -> T + 'static;
 
 	fn spawn2<F, T>(&self, work: F) -> Result<T, ()>
 	where
-		F: FnOnce() -> T + 'static;
+		F: traits::FnOnce() -> T + 'static;
 
-	fn spawn3<F: FnOnce(&Self::Pool) -> T + 'static, T>(&self, work: F) -> Result<T, ()>;
+	fn spawn3<F: traits::FnOnce(&Self::Pool) -> T + 'static, T>(&self, work: F) -> Result<T, ()>;
 }
 
 fn _generalize<P: Pool>(pool: &P) {
