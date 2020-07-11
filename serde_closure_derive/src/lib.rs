@@ -45,7 +45,7 @@ pub fn FnOnce(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
 }
 
 #[proc_macro_attribute]
-pub fn generalize(
+pub fn desugar(
 	attr: proc_macro::TokenStream, item: proc_macro::TokenStream,
 ) -> proc_macro::TokenStream {
 	let args: AttributeArgs = parse_macro_input!(attr);
@@ -54,13 +54,13 @@ pub fn generalize(
 		Err(err) => return err.to_compile_error().into(),
 		Ok(item) => item,
 	};
-	Generalizer.visit_item_mut(&mut item);
+	Desugar.visit_item_mut(&mut item);
 	item.into_token_stream().into()
 }
 
-struct Generalizer;
+struct Desugar;
 
-impl VisitMut for Generalizer {
+impl VisitMut for Desugar {
 	fn visit_trait_bound_mut(&mut self, i: &mut TraitBound) {
 		if let PathSegment {
 			ident,
@@ -107,10 +107,9 @@ impl VisitMut for Generalizer {
 							Span::call_site(),
 						))
 					}));
-				i.path = syn::parse2(
-					quote! { ::serde_closure::traits::#ident<(#inputs), Output = #output> },
-				)
-				.unwrap();
+				i.path.segments.last_mut().unwrap().arguments = PathArguments::AngleBracketed(
+					syn::parse2(quote! { <(#inputs), Output = #output> }).unwrap(),
+				);
 			}
 		}
 		visit_mut::visit_trait_bound_mut(self, i)

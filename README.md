@@ -12,10 +12,13 @@ This library provides macros that wrap closures to make them serializable and
 debuggable.
 
 ```rust
+use serde_closure::{traits::Fn, Fn};
+
 let one = 1;
 let plus_one = Fn!(|x: i32| x + one);
 
-assert_eq!(2, plus_one(1));
+assert_eq!(2, plus_one.call((1,))); // this works on stable and nightly
+// assert_eq!(2, plus_one(1));      // this only works on nightly
 println!("{:#?}", plus_one);
 
 // prints:
@@ -25,9 +28,11 @@ println!("{:#?}", plus_one);
 // }
 ```
 
-This library aims to work in as simple and safe a way as possible. It currently
-requires nightly Rust for the `unboxed_closures` and `fn_traits` features (rust
-issue [#29625](https://github.com/rust-lang/rust/issues/29625)).
+This library aims to work in as simple and safe a way as possible. On stable
+Rust the returned closures implement [`traits::FnOnce`], [`traits::FnMut`] and
+[`traits::Fn`], and on nightly Rust [`std::ops::FnOnce`], [`std::ops::FnMut`]
+and [`std::ops::Fn`] are implemented as well using the `unboxed_closures` and
+`fn_traits` features (rust issue [#29625](https://github.com/rust-lang/rust/issues/29625)).
 
  * There are three macros,
    [`FnOnce`](https://docs.rs/serde_closure/0.2/serde_closure/macro.FnOnce.html),

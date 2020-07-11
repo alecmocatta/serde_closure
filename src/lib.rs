@@ -8,11 +8,13 @@
 //! and debuggable.
 //!
 //! ```
-//! # use serde_closure::Fn;
+//! use serde_closure::{traits::Fn, Fn};
+//!
 //! let one = 1;
 //! let plus_one = Fn!(|x: i32| x + one);
 //!
-//! assert_eq!(2, plus_one(1));
+//! assert_eq!(2, plus_one.call((1,))); // this works on stable and nightly
+//! // assert_eq!(2, plus_one(1));      // this only works on nightly
 //! println!("{:#?}", plus_one);
 //!
 //! // prints:
@@ -22,9 +24,11 @@
 //! // }
 //! ```
 //!
-//! This library aims to work in as simple and safe a way as possible. It
-//! currently requires nightly Rust for the `unboxed_closures` and `fn_traits`
-//! features (rust issue
+//! This library aims to work in as simple and safe a way as possible. On stable
+//! Rust the returned closures implement [`traits::FnOnce`], [`traits::FnMut`]
+//! and [`traits::Fn`], and on nightly Rust [`std::ops::FnOnce`],
+//! [`std::ops::FnMut`] and [`std::ops::Fn`] are implemented as well using the
+//! `unboxed_closures` and `fn_traits` features (rust issue
 //! [#29625](https://github.com/rust-lang/rust/issues/29625)).
 //!
 //!  * There are three macros, [`FnOnce`](macro@FnOnce), [`FnMut`](macro@FnMut)
@@ -39,51 +43,47 @@
 //! # Examples of wrapped closures
 //! **Inferred, non-capturing closure:**
 //! ```
-//! # #[macro_use] extern crate serde_closure;
 //! # (
 //! |a| a+1
 //! # )(0i32);
 //! ```
 //! ```
-//! # #[macro_use] extern crate serde_closure;
+//! # use serde_closure::{traits::FnMut, FnMut};
 //! # (
 //! FnMut!(|a| a+1)
-//! # )(0i32);
+//! # ).call_mut((0i32,));
 //! ```
 //!
 //! **Annotated, non-capturing closure:**
 //! ```
-//! # #[macro_use] extern crate serde_closure;
 //! # (
 //! |a: String| -> String { a.to_uppercase() }
 //! # )(String::from("abc"));
 //! ```
 //! ```
-//! # #[macro_use] extern crate serde_closure;
+//! # use serde_closure::{traits::FnMut, FnMut};
 //! # (
 //! FnMut!(|a: String| -> String { a.to_uppercase() })
-//! # )(String::from("abc"));
+//! # ).call_mut((String::from("abc"),));
 //! ```
 //!
 //! **Inferred closure, capturing `num`:**
 //! ```
-//! # #[macro_use] extern crate serde_closure;
 //! let mut num = 0;
 //! # (
 //! |a| num += a
 //! # )(1i32);
 //! ```
 //! ```
-//! # #[macro_use] extern crate serde_closure;
+//! # use serde_closure::{traits::FnMut, FnMut};
 //! let mut num = 0;
 //! # (
 //! FnMut!(|a| num += a)
-//! # )(1i32);
+//! # ).call_mut((1i32,));
 //! ```
 //!
 //! **`move` closure, capturing `hello` and `world`:**
 //! ```
-//! # #[macro_use] extern crate serde_closure;
 //! let hello = String::from("hello");
 //! let mut world = String::new();
 //! # (
@@ -93,14 +93,14 @@
 //! # )("abc");
 //! ```
 //! ```
-//! # #[macro_use] extern crate serde_closure;
+//! # use serde_closure::{traits::FnMut, FnMut};
 //! let hello = String::from("hello");
 //! let mut world = String::new();
 //! # (
 //! FnMut!(move |name| {
 //!     world += (hello.to_uppercase() + name).as_str();
 //! })
-//! # )("abc");
+//! # ).call_mut(("abc",));
 //! ```
 //!
 //! # Limitations
@@ -181,36 +181,37 @@
 #![allow(clippy::inline_always)]
 
 /// Macro that wraps a closure, evaluating to a [`FnOnce`](structs::FnOnce)
-/// struct that implements [`std::ops::FnOnce`], [`Debug`](std::fmt::Debug),
-/// [`Serialize`](serde::Serialize) and [`Deserialize`](serde::Deserialize), and
-/// various convenience traits.
+/// struct that implements [`traits::FnOnce`] (and [`std::ops::FnOnce`] on
+/// nightly), [`Debug`](std::fmt::Debug), [`Serialize`](serde::Serialize) and
+/// [`Deserialize`](serde::Deserialize), and various convenience traits.
 ///
 /// See the [readme](self) for examples.
 pub use serde_closure_derive::FnOnce;
 
 /// Macro that wraps a closure, evaluating to a [`FnMut`](structs::FnMut) struct
-/// that implements [`std::ops::FnMut`], [`Debug`](std::fmt::Debug),
-/// [`Serialize`](serde::Serialize) and [`Deserialize`](serde::Deserialize), and
-/// various convenience traits.
+/// that implements [`traits::FnMut`] (and [`std::ops::FnMut`] on nightly),
+/// [`Debug`](std::fmt::Debug), [`Serialize`](serde::Serialize) and
+/// [`Deserialize`](serde::Deserialize), and various convenience traits.
 ///
 /// See the [readme](self) for examples.
 pub use serde_closure_derive::FnMut;
 
 /// Macro that wraps a closure, evaluating to a [`Fn`](structs::Fn) struct that
-/// implements [`std::ops::Fn`], [`Debug`](std::fmt::Debug),
-/// [`Serialize`](serde::Serialize) and [`Deserialize`](serde::Deserialize), and
-/// various convenience traits.
+/// implements [`traits::Fn`] (and [`std::ops::Fn`] on nightly),
+/// [`Debug`](std::fmt::Debug), [`Serialize`](serde::Serialize) and
+/// [`Deserialize`](serde::Deserialize), and various convenience traits.
 ///
 /// See the [readme](self) for examples.
 pub use serde_closure_derive::Fn;
 
-/// Attribute macro that can be applied to items to generalize trait bounds
-/// [`FnOnce(…)`](std::ops::FnOnce), [`FnMut(…)`](std::ops::FnMut) and
-/// [`Fn(…)`](std::ops::Fn) to [`traits::FnOnce<(…)>`](traits::FnOnce),
-/// [`traits::FnMut<(…)>`](traits::FnMut) and [`traits::Fn<(…)>`](traits::Fn).
+/// Attribute macro that can be applied to items to desugar trait bounds
+/// `FnOnce(…) -> …`, `FnMut(…) -> …` and `Fn(…) -> …` to `FnOnce<(…), Output = …>`,
+/// `FnMut<(…), Output = …>` and `Fn<(…), Output = …>`. This is just a
+/// convenience to enable parenthesized arguments for non `std::ops::*` traits
+/// on stable Rust.
 ///
 /// See `tests/stable.rs` for examples.
-pub use serde_closure_derive::generalize;
+pub use serde_closure_derive::desugar;
 
 #[doc(hidden)]
 pub mod internal {
@@ -295,6 +296,7 @@ pub mod traits {
 		fn call(&self, args: Args) -> Self::Output;
 	}
 
+	#[cfg(not(feature = "nightly"))]
 	macro_rules! fn_once {
 		($($t:ident)*) => {
 			impl<T, $($t,)* O> FnOnce<($($t,)*)> for T
@@ -314,8 +316,21 @@ pub mod traits {
 		};
 		(@recurse) => {};
 	}
+	#[cfg(not(feature = "nightly"))]
 	fn_once!(A B C D E F G H I J K L);
+	#[cfg(feature = "nightly")]
+	impl<T, Args> FnOnce<Args> for T
+	where
+		T: ops::FnOnce<Args>,
+	{
+		type Output = T::Output;
 
+		fn call_once(self, args: Args) -> Self::Output {
+			self.call_once(args)
+		}
+	}
+
+	#[cfg(not(feature = "nightly"))]
 	macro_rules! fn_mut {
 		($($t:ident)*) => {
 			impl<T, $($t,)* O> FnMut<($($t,)*)> for T
@@ -333,8 +348,19 @@ pub mod traits {
 		};
 		(@recurse) => {};
 	}
+	#[cfg(not(feature = "nightly"))]
 	fn_mut!(A B C D E F G H I J K L);
+	#[cfg(feature = "nightly")]
+	impl<T, Args> FnMut<Args> for T
+	where
+		T: ops::FnMut<Args>,
+	{
+		fn call_mut(&mut self, args: Args) -> Self::Output {
+			self.call_mut(args)
+		}
+	}
 
+	#[cfg(not(feature = "nightly"))]
 	macro_rules! fn_ref {
 		($($t:ident)*) => {
 			impl<T, $($t,)* O> Fn<($($t,)*)> for T
@@ -352,16 +378,27 @@ pub mod traits {
 		};
 		(@recurse) => {};
 	}
+	#[cfg(not(feature = "nightly"))]
 	fn_ref!(A B C D E F G H I J K L);
+	#[cfg(feature = "nightly")]
+	impl<T, Args> Fn<Args> for T
+	where
+		T: ops::Fn<Args>,
+	{
+		fn call(&self, args: Args) -> Self::Output {
+			self.call(args)
+		}
+	}
 }
 
 pub mod structs {
 	//! Structs representing a serializable closure, created by the
 	//! [`FnOnce`](macro@super::FnOnce), [`FnMut`](macro@super::FnMut) and
-	//! [`Fn`](macro@super::Fn) macros. They implement [`std::ops::FnOnce`],
-	//! [`std::ops::FnMut`] and [`std::ops::Fn`] respectively, as well as
-	//! [`Debug`](std::fmt::Debug), [`Serialize`](serde::Serialize) and
-	//! [`Deserialize`](serde::Deserialize), and various convenience traits.
+	//! [`Fn`](macro@super::Fn) macros. They implement [`traits::FnOnce`](super::traits::FnOnce),
+	//! [`traits::FnMut`](super::traits::FnMut) and [`traits::Fn`](super::traits::Fn)
+	//! respectively (and [`std::ops::FnOnce`], [`std::ops::FnMut`] and [`std::ops::Fn`]
+	//! on nightly), as well as [`Debug`](std::fmt::Debug), [`Serialize`](serde::Serialize)
+	//! and [`Deserialize`](serde::Deserialize), and various convenience traits.
 	//!
 	//! See the [readme](super) for examples.
 
@@ -371,8 +408,9 @@ pub mod structs {
 	use super::internal;
 
 	/// A struct representing a serializable closure, created by the
-	/// [`FnOnce`](macro@super::FnOnce) macro. Implements [`std::ops::FnOnce`],
-	/// [`Debug`], [`Serialize`] and [`Deserialize`], and various convenience
+	/// [`FnOnce`](macro@super::FnOnce) macro. Implements [`traits::FnOnce`](super::traits::FnOnce)
+	/// (and [`std::ops::FnOnce`] on nightly), [`Debug`], [`Serialize`] and
+	/// [`Deserialize`], and various convenience
 	/// traits.
 	///
 	/// See the [readme](super) for examples.
@@ -426,8 +464,9 @@ pub mod structs {
 	}
 
 	/// A struct representing a serializable closure, created by the
-	/// [`FnMut`](macro@super::FnMut) macro. Implements [`std::ops::FnMut`],
-	/// [`Debug`], [`Serialize`] and [`Deserialize`], and various convenience
+	/// [`FnMut`](macro@super::FnMut) macro. Implements [`traits::FnMut`](super::traits::FnMut)
+	/// (and [`std::ops::FnMut`] on nightly), [`Debug`], [`Serialize`] and
+	/// [`Deserialize`], and various convenience
 	/// traits.
 	///
 	/// See the [readme](super) for examples.
@@ -502,8 +541,9 @@ pub mod structs {
 	}
 
 	/// A struct representing a serializable closure, created by the
-	/// [`Fn`](macro@super::Fn) macro. Implements [`std::ops::Fn`], [`Debug`],
-	/// [`Serialize`] and [`Deserialize`], and various convenience traits.
+	/// [`Fn`](macro@super::Fn) macro. Implements [`traits::Fn`](super::traits::Fn)
+	/// (and [`std::ops::Fn`] on nightly), [`Debug`], [`Serialize`] and
+	/// [`Deserialize`], and various convenience traits.
 	///
 	/// See the [readme](super) for examples.
 	#[derive(Copy, Clone, PartialEq, Eq, Hash, PartialOrd, Ord, Serialize, Deserialize)]

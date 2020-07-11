@@ -23,7 +23,6 @@ azure-devops = { project = "alecmocatta/serde_closure", pipeline = "tests", buil
 maintenance = { status = "actively-developed" }
 
 [features]
-default = ["nightly"]
 nightly = []
 
 [dependencies]
