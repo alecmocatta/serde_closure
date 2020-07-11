@@ -35,9 +35,9 @@ and [`std::ops::Fn`] are implemented as well using the `unboxed_closures` and
 `fn_traits` features (rust issue [#29625](https://github.com/rust-lang/rust/issues/29625)).
 
  * There are three macros,
-   [`FnOnce`](https://docs.rs/serde_closure/0.2/serde_closure/macro.FnOnce.html),
-   [`FnMut`](https://docs.rs/serde_closure/0.2/serde_closure/macro.FnMut.html)
-   and [`Fn`](https://docs.rs/serde_closure/0.2/serde_closure/macro.Fn.html),
+   [`FnOnce`](https://docs.rs/serde_closure/0.3/serde_closure/macro.FnOnce.html),
+   [`FnMut`](https://docs.rs/serde_closure/0.3/serde_closure/macro.FnMut.html)
+   and [`Fn`](https://docs.rs/serde_closure/0.3/serde_closure/macro.Fn.html),
    corresponding to the three types of Rust closure.
  * Wrap your closure with one of the macros and it will now implement `Copy`,
    `Clone`, `PartialEq`, `Eq`, `Hash`, `PartialOrd`, `Ord`, `Serialize`,

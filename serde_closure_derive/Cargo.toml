@@ -1,6 +1,6 @@
 [package]
 name = "serde_closure_derive"
-version = "0.2.14"
+version = "0.3.0"
 license = "MIT OR Apache-2.0"
 authors = ["Alec Mocatta <alec@mocatta.net>"]
 categories = ["development-tools","encoding","rust-patterns","network-programming"]
@@ -25,6 +25,6 @@ maintenance = { status = "actively-developed" }
 proc-macro = true
 
 [dependencies]
-proc-macro2 = { version = "1.0.1", default-features = false, features = ["span-locations"] }
+proc-macro2 = { version = "1.0.1", default-features = false }
 quote = { version = "1.0.2", default-features = false }
 syn = { version = "1.0.5", default-features = false, features = ["clone-impls", "full", "parsing", "printing", "proc-macro", "visit-mut"] }

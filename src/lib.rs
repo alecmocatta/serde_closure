@@ -165,7 +165,7 @@
 //! automatically serializable and deserializable with
 //! [`serde`](https://github.com/serde-rs/serde).
 
-#![doc(html_root_url = "https://docs.rs/serde_closure/0.2.14")]
+#![doc(html_root_url = "https://docs.rs/serde_closure/0.3.0")]
 #![cfg_attr(feature = "nightly", feature(unboxed_closures, fn_traits))]
 #![warn(
 	missing_copy_implementations,
