@@ -11,7 +11,17 @@
 use serde::{de::DeserializeOwned, Serialize};
 use std::{fmt::Debug, hash::Hash};
 
-use serde_closure::{traits, Fn, FnMut, FnOnce};
+use serde_closure::{traits, Fn, FnMut, FnMutNamed, FnOnce};
+
+FnMutNamed! {
+	pub type Closure<P, E> = |self|partition=> P| -> Result<P,E>
+	where
+		P: Default,
+		E: 'static
+	{
+		Ok(partition)
+	}
+}
 
 trait Various:
 	Clone + PartialEq + Eq + Hash + PartialOrd + Ord + Serialize + DeserializeOwned + Debug

@@ -214,6 +214,67 @@ pub use serde_closure_derive::Fn;
 pub use serde_closure_derive::desugar;
 
 #[doc(hidden)]
+#[macro_export]
+macro_rules! FnMutNamed {
+	(pub type $name:ident<$($t:ident),*> = |$self:ident $(,$env:ident: $env_type:ty)*|$($arg:pat=> $arg_type:ty),*| -> $output:ty where $($bound_ty:ident : $bound_trait:tt),* $body:block) => (
+		#[derive(::serde::Serialize, ::serde::Deserialize)]
+		pub struct $name<$($t),*>
+		where
+			$($bound_ty: $bound_trait),*
+		{
+			$($env: $env_type,)*
+			marker: ::core::marker::PhantomData<fn() -> ($($t,)*)>,
+		}
+		const _: () = {
+			impl<$($t),*> $name<$($t),*>
+			where
+				$($bound_ty: $bound_trait),*
+			{
+				#[allow(clippy::new_without_default)]
+				pub fn new($($env: $env_type),*) -> Self {
+					Self {
+						$($env: $env,)*
+						marker: ::core::marker::PhantomData,
+					}
+				}
+				fn run(&mut $self, ($($arg,)*): ($($arg_type,)*)) -> $output
+					$body
+			}
+			impl<$($t),*> Clone for $name<$($t),*>
+			where
+				$($bound_ty: $bound_trait,)*
+				$($env_type: Clone,)*
+			{
+				fn clone(&self) -> Self {
+					Self {
+						$($env: self.$env.clone(),)*
+						marker: ::core::marker::PhantomData,
+					}
+				}
+			}
+			impl<$($t),*> ::serde_closure::traits::FnOnce<($($arg_type,)*)> for $name<$($t),*>
+			where
+				$($bound_ty: $bound_trait),*
+			{
+				type Output = $output;
+
+				fn call_once(mut self, args: ($($arg_type,)*)) -> Self::Output {
+					self.run(args)
+				}
+			}
+			impl<$($t),*> ::serde_closure::traits::FnMut<($($arg_type,)*)> for $name<$($t),*>
+			where
+				$($bound_ty: $bound_trait),*
+			{
+				fn call_mut(&mut self, args: ($($arg_type,)*)) -> Self::Output {
+					unsafe { $crate::internal::transmute(self.run(args)) }
+				}
+			}
+		};
+	)
+}
+
+#[doc(hidden)]
 pub mod internal {
 	pub use core;
 	pub use serde;
@@ -249,6 +310,18 @@ pub mod internal {
 		non_camel_case_types
 	)]
 	pub struct a_variable;
+
+	#[allow(clippy::missing_safety_doc)]
+	pub unsafe fn transmute<T, U>(e: T) -> U {
+		use std::mem::{self, align_of, size_of};
+		assert_eq!(
+			(size_of::<T>(), align_of::<T>()),
+			(size_of::<U>(), align_of::<U>())
+		);
+		let ret = mem::transmute_copy(&e);
+		mem::forget(e);
+		ret
+	}
 }
 
 pub mod traits {
