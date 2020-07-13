@@ -369,6 +369,21 @@ pub mod traits {
 		fn call(&self, args: Args) -> Self::Output;
 	}
 
+	pub trait FnOnceBox<A> {
+		type Output;
+
+		fn call_once_box(self: Box<Self>, args: A) -> Self::Output;
+	}
+	impl<A, F> FnOnceBox<A> for F
+		where F: FnOnce<A>
+	{
+		type Output = F::Output;
+
+		fn call_once_box(self: Box<F>, args: A) -> F::Output {
+			self.call_once(args)
+		}
+	}
+
 	#[cfg(not(feature = "nightly"))]
 	macro_rules! fn_once {
 		($($t:ident)*) => {
