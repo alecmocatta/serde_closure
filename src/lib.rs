@@ -166,7 +166,7 @@
 //! [`serde`](https://github.com/serde-rs/serde).
 
 #![doc(html_root_url = "https://docs.rs/serde_closure/0.3.0")]
-#![cfg_attr(feature = "nightly", feature(unboxed_closures, fn_traits))]
+#![cfg_attr(nightly, feature(unboxed_closures, fn_traits))]
 #![warn(
 	missing_copy_implementations,
 	missing_debug_implementations,
@@ -394,7 +394,7 @@ pub mod traits {
 		}
 	}
 
-	#[cfg(not(feature = "nightly"))]
+	#[cfg(not(nightly))]
 	macro_rules! fn_once {
 		($($t:ident)*) => {
 			impl<T, $($t,)* O> FnOnce<($($t,)*)> for T
@@ -414,9 +414,9 @@ pub mod traits {
 		};
 		(@recurse) => {};
 	}
-	#[cfg(not(feature = "nightly"))]
+	#[cfg(not(nightly))]
 	fn_once!(A B C D E F G H I J K L);
-	#[cfg(feature = "nightly")]
+	#[cfg(nightly)]
 	impl<T, Args> FnOnce<Args> for T
 	where
 		T: ops::FnOnce<Args>,
@@ -428,7 +428,7 @@ pub mod traits {
 		}
 	}
 
-	#[cfg(not(feature = "nightly"))]
+	#[cfg(not(nightly))]
 	macro_rules! fn_mut {
 		($($t:ident)*) => {
 			impl<T, $($t,)* O> FnMut<($($t,)*)> for T
@@ -446,9 +446,9 @@ pub mod traits {
 		};
 		(@recurse) => {};
 	}
-	#[cfg(not(feature = "nightly"))]
+	#[cfg(not(nightly))]
 	fn_mut!(A B C D E F G H I J K L);
-	#[cfg(feature = "nightly")]
+	#[cfg(nightly)]
 	impl<T, Args> FnMut<Args> for T
 	where
 		T: ops::FnMut<Args>,
@@ -458,7 +458,7 @@ pub mod traits {
 		}
 	}
 
-	#[cfg(not(feature = "nightly"))]
+	#[cfg(not(nightly))]
 	macro_rules! fn_ref {
 		($($t:ident)*) => {
 			impl<T, $($t,)* O> Fn<($($t,)*)> for T
@@ -476,9 +476,9 @@ pub mod traits {
 		};
 		(@recurse) => {};
 	}
-	#[cfg(not(feature = "nightly"))]
+	#[cfg(not(nightly))]
 	fn_ref!(A B C D E F G H I J K L);
-	#[cfg(feature = "nightly")]
+	#[cfg(nightly)]
 	impl<T, Args> Fn<Args> for T
 	where
 		T: ops::Fn<Args>,
@@ -529,7 +529,7 @@ pub mod structs {
 		}
 	}
 
-	#[cfg(not(feature = "nightly"))]
+	#[cfg(not(nightly))]
 	impl<F, I> super::traits::FnOnce<I> for FnOnce<F>
 	where
 		F: internal::FnOnce<I>,
@@ -540,7 +540,7 @@ pub mod structs {
 			self.f.call_once(args)
 		}
 	}
-	#[cfg(feature = "nightly")]
+	#[cfg(nightly)]
 	impl<F, I> std::ops::FnOnce<I> for FnOnce<F>
 	where
 		F: internal::FnOnce<I>,
@@ -585,7 +585,7 @@ pub mod structs {
 		}
 	}
 
-	#[cfg(not(feature = "nightly"))]
+	#[cfg(not(nightly))]
 	impl<F, I> super::traits::FnOnce<I> for FnMut<F>
 	where
 		F: internal::FnOnce<I>,
@@ -596,7 +596,7 @@ pub mod structs {
 			self.f.call_once(args)
 		}
 	}
-	#[cfg(feature = "nightly")]
+	#[cfg(nightly)]
 	impl<F, I> std::ops::FnOnce<I> for FnMut<F>
 	where
 		F: internal::FnOnce<I>,
@@ -608,7 +608,7 @@ pub mod structs {
 		}
 	}
 
-	#[cfg(not(feature = "nightly"))]
+	#[cfg(not(nightly))]
 	impl<F, I> super::traits::FnMut<I> for FnMut<F>
 	where
 		F: internal::FnMut<I>,
@@ -618,7 +618,7 @@ pub mod structs {
 			self.f.call_mut(args)
 		}
 	}
-	#[cfg(feature = "nightly")]
+	#[cfg(nightly)]
 	impl<F, I> std::ops::FnMut<I> for FnMut<F>
 	where
 		F: internal::FnMut<I>,
@@ -661,7 +661,7 @@ pub mod structs {
 		}
 	}
 
-	#[cfg(not(feature = "nightly"))]
+	#[cfg(not(nightly))]
 	impl<F, I> super::traits::FnOnce<I> for Fn<F>
 	where
 		F: internal::FnOnce<I>,
@@ -672,7 +672,7 @@ pub mod structs {
 			self.f.call_once(args)
 		}
 	}
-	#[cfg(feature = "nightly")]
+	#[cfg(nightly)]
 	impl<F, I> std::ops::FnOnce<I> for Fn<F>
 	where
 		F: internal::FnOnce<I>,
@@ -684,7 +684,7 @@ pub mod structs {
 		}
 	}
 
-	#[cfg(not(feature = "nightly"))]
+	#[cfg(not(nightly))]
 	impl<F, I> super::traits::FnMut<I> for Fn<F>
 	where
 		F: internal::FnMut<I>,
@@ -694,7 +694,7 @@ pub mod structs {
 			self.f.call_mut(args)
 		}
 	}
-	#[cfg(feature = "nightly")]
+	#[cfg(nightly)]
 	impl<F, I> std::ops::FnMut<I> for Fn<F>
 	where
 		F: internal::FnMut<I>,
@@ -705,7 +705,7 @@ pub mod structs {
 		}
 	}
 
-	#[cfg(not(feature = "nightly"))]
+	#[cfg(not(nightly))]
 	impl<F, I> super::traits::Fn<I> for Fn<F>
 	where
 		F: internal::Fn<I>,
@@ -715,7 +715,7 @@ pub mod structs {
 			self.f.call(args)
 		}
 	}
-	#[cfg(feature = "nightly")]
+	#[cfg(nightly)]
 	impl<F, I> std::ops::Fn<I> for Fn<F>
 	where
 		F: internal::Fn<I>,
