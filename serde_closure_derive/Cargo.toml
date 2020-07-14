@@ -1,6 +1,6 @@
 [package]
 name = "serde_closure_derive"
-version = "0.3.0"
+version = "0.3.1"
 license = "MIT OR Apache-2.0"
 authors = ["Alec Mocatta <alec@mocatta.net>"]
 categories = ["development-tools","encoding","rust-patterns","network-programming"]
