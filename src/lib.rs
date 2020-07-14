@@ -369,13 +369,23 @@ pub mod traits {
 		fn call(&self, args: Args) -> Self::Output;
 	}
 
+	/// A version of the [`FnOnce`] trait intended to be used for boxed trait
+	/// objects to make them callable on stable Rust.
+	///
+	/// ```ignore
+	/// let t: Box<dyn FnOnceBox(…) -> …> = …;
+	/// let output = t.call_once_box((…,));
+	/// ```
 	pub trait FnOnceBox<A> {
+		/// The returned type after the call operator is used.
 		type Output;
 
+		/// Performs the call operation on a `Box<dyn FnOnceBox(…) -> …>`.
 		fn call_once_box(self: Box<Self>, args: A) -> Self::Output;
 	}
 	impl<A, F> FnOnceBox<A> for F
-		where F: FnOnce<A>
+	where
+		F: FnOnce<A>,
 	{
 		type Output = F::Output;
 
