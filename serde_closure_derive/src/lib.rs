@@ -10,36 +10,36 @@
 //! See [`serde_closure`](https://docs.rs/serde_closure) for
 //! documentation.
 
-#![doc(html_root_url = "https://docs.rs/serde_closure_derive/0.3.0")]
+#![doc(html_root_url = "https://docs.rs/serde_closure_derive/0.3.1")]
 
 use proc_macro2::{Span, TokenStream};
 use quote::{quote, ToTokens};
 use std::{collections::HashSet, iter, iter::successors, mem::take, str};
 use syn::{
-	parse::{Parse, ParseStream}, parse2, parse_macro_input, token::Bracket, visit_mut::{self, VisitMut}, Arm, AttributeArgs, Block, Error, Expr, ExprArray, ExprAssign, ExprAssignOp, ExprAsync, ExprAwait, ExprBinary, ExprBlock, ExprBox, ExprBreak, ExprCall, ExprCast, ExprClosure, ExprField, ExprForLoop, ExprGroup, ExprIf, ExprIndex, ExprLet, ExprLoop, ExprMacro, ExprMatch, ExprMethodCall, ExprParen, ExprPath, ExprRange, ExprReference, ExprRepeat, ExprReturn, ExprStruct, ExprTry, ExprTryBlock, ExprTuple, ExprType, ExprUnary, ExprUnsafe, ExprWhile, ExprYield, FieldValue, Ident, Item, Lifetime, LifetimeDef, Local, Member, Pat, PatBox, PatIdent, PatReference, PatSlice, PatTuple, PatTupleStruct, PatType, Path, PathArguments, PathSegment, ReturnType, Stmt, TraitBound, Type, TypeInfer, TypeReference, TypeTuple, UnOp
+	parse2, parse_macro_input, visit_mut::{self, VisitMut}, Arm, AttributeArgs, Block, Error, Expr, ExprArray, ExprAssign, ExprAssignOp, ExprAsync, ExprAwait, ExprBinary, ExprBlock, ExprBox, ExprBreak, ExprCall, ExprCast, ExprClosure, ExprField, ExprForLoop, ExprGroup, ExprIf, ExprIndex, ExprLet, ExprLoop, ExprMacro, ExprMatch, ExprMethodCall, ExprParen, ExprPath, ExprRange, ExprReference, ExprRepeat, ExprReturn, ExprStruct, ExprTry, ExprTryBlock, ExprTuple, ExprType, ExprUnary, ExprUnsafe, ExprWhile, ExprYield, FieldValue, Ident, Item, Lifetime, LifetimeDef, Local, Member, Pat, PatBox, PatIdent, PatReference, PatSlice, PatTuple, PatTupleStruct, PatType, Path, PathArguments, PathSegment, ReturnType, Stmt, TraitBound, Type, TypeInfer, TypeReference, TypeTuple, UnOp
 };
 
 #[proc_macro]
 #[allow(non_snake_case)]
 pub fn Fn(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
-	syn::parse::<Closure>(input)
-		.and_then(|closure| impl_fn_once(closure, Kind::Fn))
+	syn::parse::<ExprClosure>(input)
+		.and_then(|closure| impl_closure(closure, Kind::Fn))
 		.unwrap_or_else(|err| err.to_compile_error())
 		.into()
 }
 #[proc_macro]
 #[allow(non_snake_case)]
 pub fn FnMut(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
-	syn::parse::<Closure>(input)
-		.and_then(|closure| impl_fn_once(closure, Kind::FnMut))
+	syn::parse::<ExprClosure>(input)
+		.and_then(|closure| impl_closure(closure, Kind::FnMut))
 		.unwrap_or_else(|err| err.to_compile_error())
 		.into()
 }
 #[proc_macro]
 #[allow(non_snake_case)]
 pub fn FnOnce(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
-	syn::parse::<Closure>(input)
-		.and_then(|closure| impl_fn_once(closure, Kind::FnOnce))
+	syn::parse::<ExprClosure>(input)
+		.and_then(|closure| impl_closure(closure, Kind::FnOnce))
 		.unwrap_or_else(|err| err.to_compile_error())
 		.into()
 }
@@ -62,73 +62,56 @@ struct Desugar;
 
 impl VisitMut for Desugar {
 	fn visit_trait_bound_mut(&mut self, i: &mut TraitBound) {
+		let span = Span::call_site();
 		if let PathSegment {
-			ident,
 			arguments: PathArguments::Parenthesized(args),
+			..
 		} = i.path.segments.last().unwrap()
 		{
-			if ident == "FnOnce" || ident == "FnMut" || ident == "Fn" {
-				let mut lifetimes = 0;
-				let mut inputs = args.inputs.clone();
-				for input in &mut inputs {
-					match input {
-						Type::Reference(TypeReference { lifetime, .. }) if lifetime.is_none() => {
-							*lifetime = Some(Lifetime::new(
-								&format!(
-									"'__serde_closure_{}",
-									bijective_base(lifetimes, 26, alpha_lower)
-								),
-								Span::call_site(),
-							));
-							lifetimes += 1;
-						}
-						_ => (),
+			let mut lifetimes = 0;
+			let mut inputs = args.inputs.clone();
+			for input in &mut inputs {
+				match input {
+					Type::Reference(TypeReference { lifetime, .. }) if lifetime.is_none() => {
+						*lifetime = Some(Lifetime::new(
+							&format!(
+								"'__serde_closure_{}",
+								bijective_base(lifetimes, 26, alpha_lower)
+							),
+							span,
+						));
+						lifetimes += 1;
 					}
+					_ => (),
 				}
-				if !inputs.empty_or_trailing() {
-					inputs.push_punct(Default::default());
-				}
-				let output = match &args.output {
-					ReturnType::Type(_, type_) => (&**type_).clone(),
-					ReturnType::Default => Type::Tuple(TypeTuple {
-						paren_token: Default::default(),
-						elems: Default::default(),
-					}),
-				};
-				let empty = syn::parse2(quote! {for <>}).unwrap();
-				i.lifetimes = Some(i.lifetimes.clone().unwrap_or(empty));
-				i.lifetimes
-					.as_mut()
-					.unwrap()
-					.lifetimes
-					.extend((0..lifetimes).map(|i| {
-						LifetimeDef::new(Lifetime::new(
-							&format!("'__serde_closure_{}", bijective_base(i, 26, alpha_lower)),
-							Span::call_site(),
-						))
-					}));
-				i.path.segments.last_mut().unwrap().arguments = PathArguments::AngleBracketed(
-					syn::parse2(quote! { <(#inputs), Output = #output> }).unwrap(),
-				);
 			}
+			if !inputs.empty_or_trailing() {
+				inputs.push_punct(Default::default());
+			}
+			let output = match &args.output {
+				ReturnType::Type(_, type_) => (&**type_).clone(),
+				ReturnType::Default => Type::Tuple(TypeTuple {
+					paren_token: Default::default(),
+					elems: Default::default(),
+				}),
+			};
+			let empty = syn::parse2(quote! {for <>}).unwrap();
+			i.lifetimes = Some(i.lifetimes.clone().unwrap_or(empty));
+			i.lifetimes
+				.as_mut()
+				.unwrap()
+				.lifetimes
+				.extend((0..lifetimes).map(|i| {
+					LifetimeDef::new(Lifetime::new(
+						&format!("'__serde_closure_{}", bijective_base(i, 26, alpha_lower)),
+						span,
+					))
+				}));
+			i.path.segments.last_mut().unwrap().arguments = PathArguments::AngleBracketed(
+				syn::parse2(quote! { <(#inputs), Output = #output> }).unwrap(),
+			);
 		}
 		visit_mut::visit_trait_bound_mut(self, i)
-	}
-}
-
-struct Closure {
-	env: Option<ExprArray>,
-	closure: ExprClosure,
-}
-impl Parse for Closure {
-	fn parse(input: ParseStream) -> Result<Self, Error> {
-		let env = if input.peek(Bracket) {
-			Some(input.parse()?)
-		} else {
-			None
-		};
-		let closure = input.parse()?;
-		Ok(Closure { env, closure })
 	}
 }
 
@@ -149,7 +132,7 @@ impl Kind {
 }
 
 #[allow(clippy::cognitive_complexity)]
-fn impl_fn_once(closure: Closure, kind: Kind) -> Result<TokenStream, Error> {
+fn impl_closure(mut closure: ExprClosure, kind: Kind) -> Result<TokenStream, Error> {
 	let span = Span::call_site(); // TODO: def_site() https://github.com/rust-lang/rust/issues/54724
 	let name_string = kind.name();
 	let name = Ident::new(name_string, span);
@@ -158,8 +141,6 @@ fn impl_fn_once(closure: Closure, kind: Kind) -> Result<TokenStream, Error> {
 	let env_types_name = Ident::new("__serde_closure_env_types", span);
 	let impls_name = Ident::new("__serde_closure_impls", span);
 
-	let _ = closure.env;
-	let mut closure = closure.closure;
 	let source = closure.to_token_stream().to_string();
 	let capture = closure.capture.is_some();
 	// Convert closure to use block so any not_env_variables can be asserted.
