@@ -33,7 +33,7 @@ Rust the wrapped closures implement
 [`traits::FnOnce`](https://docs.rs/serde_closure/0.3/serde_closure/traits/trait.FnOnce.html),
 [`traits::FnMut`](https://docs.rs/serde_closure/0.3/serde_closure/traits/trait.FnMut.html)
 and [`traits::Fn`](https://docs.rs/serde_closure/0.3/serde_closure/traits/trait.Fn.html),
-and when the "nightly" feature is passed
+and on nightly Rust
 [`std::ops::FnOnce`](https://doc.rust-lang.org/std/ops/trait.FnOnce.html),
 [`std::ops::FnMut`](https://doc.rust-lang.org/std/ops/trait.FnMut.html) and
 [`std::ops::Fn`](https://doc.rust-lang.org/std/ops/trait.Fn.html) are

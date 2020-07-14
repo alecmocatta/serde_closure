@@ -26,10 +26,10 @@
 //!
 //! This library aims to work in as simple and safe a way as possible. On stable
 //! Rust the wrapped closures implement [`traits::FnOnce`], [`traits::FnMut`]
-//! and [`traits::Fn`], and when the "nightly" feature is passed
-//! [`std::ops::FnOnce`], [`std::ops::FnMut`] and [`std::ops::Fn`] are
-//! implemented as well using the `unboxed_closures` and `fn_traits` features
-//! (rust issue [#29625](https://github.com/rust-lang/rust/issues/29625)).
+//! and [`traits::Fn`], and on nightly Rust [`std::ops::FnOnce`],
+//! [`std::ops::FnMut`] and [`std::ops::Fn`] are implemented as well using the
+//! `unboxed_closures` and `fn_traits` features (rust issue
+//! [#29625](https://github.com/rust-lang/rust/issues/29625)).
 //!
 //!  * There are three macros, [`FnOnce`](macro@FnOnce), [`FnMut`](macro@FnMut)
 //!    and [`Fn`](macro@Fn), corresponding to the three types of Rust closure.
