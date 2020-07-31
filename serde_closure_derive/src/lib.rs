@@ -257,6 +257,7 @@ fn impl_closure(mut closure: ExprClosure, kind: Kind) -> Result<TokenStream, Err
 				F: ops::FnOnce(&#name<#(#type_params,)* ()>,I) -> O
 			{
 				type Output = O;
+
 				#[inline(always)]
 				fn call_once(self, args: I) -> Self::Output {
 					self.f()(&self.strip_f(), args)
@@ -287,6 +288,7 @@ fn impl_closure(mut closure: ExprClosure, kind: Kind) -> Result<TokenStream, Err
 				F: ops::FnOnce(&mut #name<#(#type_params,)* ()>,I) -> O
 			{
 				type Output = O;
+
 				#[inline(always)]
 				fn call_once(mut self, args: I) -> Self::Output {
 					self.f()(&mut self.strip_f(), args)
@@ -308,6 +310,7 @@ fn impl_closure(mut closure: ExprClosure, kind: Kind) -> Result<TokenStream, Err
 				F: ops::FnOnce(#name<#(#type_params,)* ()>,I) -> O
 			{
 				type Output = O;
+
 				#[inline(always)]
 				fn call_once(self, args: I) -> Self::Output {
 					self.f()(self.strip_f(), args)
@@ -787,11 +790,7 @@ impl<'a> State<'a> {
 			{
 				let path_segment = &path.segments.first().unwrap();
 				let ident = &path_segment.ident;
-				let has_path_arguments = if let PathArguments::None = path_segment.arguments {
-					false
-				} else {
-					true
-				};
+				let has_path_arguments = !matches!(path_segment.arguments, PathArguments::None);
 				if !self.variables.contains(ident) {
 					// Assume it's a variable, unless:
 					// * It starts with an upper-case letter, e.g. `Some`, OR
