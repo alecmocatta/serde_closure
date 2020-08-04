@@ -16,7 +16,7 @@ use proc_macro2::{Span, TokenStream};
 use quote::{quote, ToTokens};
 use std::{collections::HashSet, iter, iter::successors, mem::take, str};
 use syn::{
-	parse2, parse_macro_input, visit_mut::{self, VisitMut}, Arm, AttributeArgs, Block, Error, Expr, ExprArray, ExprAssign, ExprAssignOp, ExprAsync, ExprAwait, ExprBinary, ExprBlock, ExprBox, ExprBreak, ExprCall, ExprCast, ExprClosure, ExprField, ExprForLoop, ExprGroup, ExprIf, ExprIndex, ExprLet, ExprLoop, ExprMacro, ExprMatch, ExprMethodCall, ExprParen, ExprPath, ExprRange, ExprReference, ExprRepeat, ExprReturn, ExprStruct, ExprTry, ExprTryBlock, ExprTuple, ExprType, ExprUnary, ExprUnsafe, ExprWhile, ExprYield, FieldValue, Ident, Item, Lifetime, LifetimeDef, Local, Member, Pat, PatBox, PatIdent, PatReference, PatSlice, PatTuple, PatTupleStruct, PatType, Path, PathArguments, PathSegment, ReturnType, Stmt, TraitBound, Type, TypeInfer, TypeReference, TypeTuple, UnOp
+	parse2, parse_macro_input, visit_mut::{self, VisitMut}, Arm, AttributeArgs, Block, Error, Expr, ExprArray, ExprAssign, ExprAssignOp, ExprAsync, ExprAwait, ExprBinary, ExprBlock, ExprBox, ExprBreak, ExprCall, ExprCast, ExprClosure, ExprField, ExprForLoop, ExprGroup, ExprIf, ExprIndex, ExprLet, ExprLoop, ExprMacro, ExprMatch, ExprMethodCall, ExprParen, ExprPath, ExprRange, ExprReference, ExprRepeat, ExprReturn, ExprStruct, ExprTry, ExprTryBlock, ExprTuple, ExprType, ExprUnary, ExprUnsafe, ExprWhile, ExprYield, FieldValue, GenericParam, Ident, ImplItem, Item, ItemImpl, Lifetime, LifetimeDef, Local, Member, Pat, PatBox, PatIdent, PatReference, PatSlice, PatTuple, PatTupleStruct, PatType, Path, PathArguments, PathSegment, ReturnType, Stmt, TraitBound, Type, TypeInfer, TypeReference, TypeTuple, UnOp
 };
 
 #[proc_macro]
@@ -60,14 +60,12 @@ pub fn desugar(
 
 struct Desugar;
 
-impl VisitMut for Desugar {
-	fn visit_trait_bound_mut(&mut self, i: &mut TraitBound) {
-		let span = Span::call_site();
-		if let PathSegment {
-			arguments: PathArguments::Parenthesized(args),
-			..
-		} = i.path.segments.last().unwrap()
-		{
+impl Desugar {
+	fn desugar_path_arg(
+		&mut self, arg: &mut PathArguments, return_output: bool,
+	) -> (u64, Option<Type>) {
+		if let PathArguments::Parenthesized(args) = &arg {
+			let span = Span::call_site();
 			let mut lifetimes = 0;
 			let mut inputs = args.inputs.clone();
 			for input in &mut inputs {
@@ -95,6 +93,25 @@ impl VisitMut for Desugar {
 					elems: Default::default(),
 				}),
 			};
+			*arg = PathArguments::AngleBracketed(if !return_output {
+				syn::parse2(quote! { <(#inputs), Output = #output> }).unwrap()
+			} else {
+				syn::parse2(quote! { <(#inputs)> }).unwrap()
+			});
+			(lifetimes, if return_output { Some(output) } else { None })
+		} else {
+			(0, None)
+		}
+	}
+}
+
+impl VisitMut for Desugar {
+	fn visit_trait_bound_mut(&mut self, i: &mut TraitBound) {
+		let lifetimes = self
+			.desugar_path_arg(&mut i.path.segments.last_mut().unwrap().arguments, false)
+			.0;
+		if lifetimes > 0 {
+			let span = Span::call_site();
 			let empty = syn::parse2(quote! {for <>}).unwrap();
 			i.lifetimes = Some(i.lifetimes.clone().unwrap_or(empty));
 			i.lifetimes
@@ -107,11 +124,34 @@ impl VisitMut for Desugar {
 						span,
 					))
 				}));
-			i.path.segments.last_mut().unwrap().arguments = PathArguments::AngleBracketed(
-				syn::parse2(quote! { <(#inputs), Output = #output> }).unwrap(),
-			);
 		}
 		visit_mut::visit_trait_bound_mut(self, i)
+	}
+	fn visit_item_impl_mut(&mut self, i: &mut ItemImpl) {
+		if let Some((_, path, _)) = &mut i.trait_ {
+			let (lifetimes, output) =
+				self.desugar_path_arg(&mut path.segments.last_mut().unwrap().arguments, true);
+			if lifetimes > 0 {
+				let span = Span::call_site();
+				i.generics.lt_token = Some(Default::default());
+				i.generics.gt_token = Some(Default::default());
+				i.generics.params.extend((0..lifetimes).map(|i| {
+					GenericParam::Lifetime(LifetimeDef::new(Lifetime::new(
+						&format!("'__serde_closure_{}", bijective_base(i, 26, alpha_lower)),
+						span,
+					)))
+				}));
+			}
+			// Yuck
+			if path.segments.last().unwrap().ident == "FnOnce" {
+				if let Some(output) = output {
+					i.items.push(ImplItem::Type(
+						syn::parse2(quote! { type Output = #output; }).unwrap(),
+					));
+				}
+			}
+		}
+		visit_mut::visit_item_impl_mut(self, i)
 	}
 }
 

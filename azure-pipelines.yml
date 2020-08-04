@@ -13,8 +13,8 @@ jobs:
   parameters:
     endpoint: alecmocatta
     default:
-      rust_toolchain: beta nightly
-      rust_lint_toolchain: nightly-2020-07-12
+      rust_toolchain: stable nightly
+      rust_lint_toolchain: nightly-2020-07-27
       rust_flags: ''
       rust_features_clippy: ''
       rust_features: ''
