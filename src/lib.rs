@@ -165,7 +165,7 @@
 //! automatically serializable and deserializable with
 //! [`serde`](https://github.com/serde-rs/serde).
 
-#![doc(html_root_url = "https://docs.rs/serde_closure/0.3.1")]
+#![doc(html_root_url = "https://docs.rs/serde_closure/0.3.2")]
 #![cfg_attr(nightly, feature(unboxed_closures, fn_traits))]
 #![warn(
 	missing_copy_implementations,
@@ -217,27 +217,33 @@ pub use serde_closure_derive::desugar;
 #[macro_export]
 macro_rules! FnMutNamed {
 	(pub type $name:ident<$($t:ident),*> = |$self:ident $(,$env:ident: $env_type:ty)*|$($arg:pat=> $arg_type:ty),*| -> $output:ty where $($bound_ty:ident : $bound_trait:tt),* $body:block) => (
-		#[derive(::serde::Serialize, ::serde::Deserialize)]
+		FnMutNamed!{ pub type $name<$($t),*> = |$self $(,$env: $env_type)*|$($arg => $arg_type),*| -> $output where $($bound_ty : $bound_trait),* ; where $body}
+	);
+	(pub type $name:ident<$($t:ident),*> = |$self:ident $(,$env:ident: $env_type:ty)*|$($arg:pat=> $arg_type:ty),*| -> $output:ty where $($bound_ty:ident : $bound_trait:tt),* ; where $($fn_bound_ty:ident : $fn_bound_trait:tt),* $body:block) => (
 		pub struct $name<$($t),*>
 		where
 			$($bound_ty: $bound_trait),*
 		{
 			$($env: $env_type,)*
-			marker: ::core::marker::PhantomData<fn() -> ($($t,)*)>,
+			marker: $crate::internal::core::marker::PhantomData<fn() -> ($($t,)*)>,
 		}
 		const _: () = {
 			impl<$($t),*> $name<$($t),*>
 			where
 				$($bound_ty: $bound_trait),*
 			{
-				#[allow(clippy::new_without_default)]
+				#[allow(clippy::inline_always, clippy::new_without_default)]
+				#[inline(always)]
 				pub fn new($($env: $env_type),*) -> Self {
 					Self {
 						$($env: $env,)*
-						marker: ::core::marker::PhantomData,
+						marker: $crate::internal::core::marker::PhantomData,
 					}
 				}
+				#[inline]
 				fn run(&mut $self, ($($arg,)*): ($($arg_type,)*)) -> $output
+				where
+					$($fn_bound_ty: $fn_bound_trait),*
 					$body
 			}
 			impl<$($t),*> Clone for $name<$($t),*>
@@ -245,29 +251,168 @@ macro_rules! FnMutNamed {
 				$($bound_ty: $bound_trait,)*
 				$($env_type: Clone,)*
 			{
+				#[inline]
 				fn clone(&self) -> Self {
 					Self {
 						$($env: self.$env.clone(),)*
-						marker: ::core::marker::PhantomData,
+						marker: $crate::internal::core::marker::PhantomData,
 					}
 				}
 			}
-			impl<$($t),*> ::serde_closure::traits::FnOnce<($($arg_type,)*)> for $name<$($t),*>
+			impl<$($t),*> $crate::internal::serde::Serialize for $name<$($t),*>
+			where
+				$($bound_ty: $bound_trait,)*
+				$($env_type: $crate::internal::serde::Serialize,)*
+			{
+				fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error> where S: $crate::internal::serde::Serializer {
+					$crate::internal::serde::Serialize::serialize(&($(&self.$env,)*), serializer)
+				}
+			}
+			impl<'de, $($t),*> $crate::internal::serde::Deserialize<'de> for $name<$($t),*>
+			where
+				$($bound_ty: $bound_trait,)*
+				$($env_type: $crate::internal::serde::Deserialize<'de>,)*
+			{
+				fn deserialize<D>(deserializer: D) -> Result<Self, D::Error> where D: $crate::internal::serde::Deserializer<'de> {
+					<($($env_type,)*) as $crate::internal::serde::Deserialize>::deserialize(deserializer).map(|($($env,)*)| {
+						Self {
+							$($env,)*
+							marker: $crate::internal::core::marker::PhantomData
+						}
+					})
+				}
+			}
+			#[$crate::desugar]
+			impl<$($t),*> $crate::traits::FnOnce($($arg_type,)*) -> $output for $name<$($t),*>
 			where
 				$($bound_ty: $bound_trait),*
+				$($fn_bound_ty: $fn_bound_trait),*
 			{
-				type Output = $output;
-
+				#[allow(clippy::inline_always)]
+				#[inline(always)]
 				fn call_once(mut self, args: ($($arg_type,)*)) -> Self::Output {
 					self.run(args)
 				}
 			}
-			impl<$($t),*> ::serde_closure::traits::FnMut<($($arg_type,)*)> for $name<$($t),*>
+			#[$crate::desugar]
+			impl<$($t),*> $crate::traits::FnMut($($arg_type,)*) -> $output for $name<$($t),*>
+			where
+				$($bound_ty: $bound_trait),*
+				$($fn_bound_ty: $fn_bound_trait),*
+			{
+				#[allow(clippy::inline_always)]
+				#[inline(always)]
+				fn call_mut(&mut self, args: ($($arg_type,)*)) -> Self::Output {
+					$crate::internal::transmute(self.run(args))
+				}
+			}
+		};
+	)
+}
+
+#[doc(hidden)]
+#[macro_export]
+macro_rules! FnNamed {
+	(pub type $name:ident<$($t:ident),*> = |$self:ident $(,$env:ident: $env_type:ty)*|$($arg:pat=> $arg_type:ty),*| -> $output:ty where $($bound_ty:ident : $bound_trait:tt),* $body:block) => (
+		FnNamed!{ pub type $name<$($t),*> = |$self $(,$env: $env_type)*|$($arg => $arg_type),*| -> $output where $($bound_ty : $bound_trait),* ; where $body}
+	);
+	(pub type $name:ident<$($t:ident),*> = |$self:ident $(,$env:ident: $env_type:ty)*|$($arg:pat=> $arg_type:ty),*| -> $output:ty where $($bound_ty:ident : $bound_trait:tt),* ; where $($fn_bound_ty:ident : $fn_bound_trait:tt),* $body:block) => (
+		pub struct $name<$($t),*>
+		where
+			$($bound_ty: $bound_trait),*
+		{
+			$($env: $env_type,)*
+			marker: $crate::internal::core::marker::PhantomData<fn() -> ($($t,)*)>,
+		}
+		const _: () = {
+			impl<$($t),*> $name<$($t),*>
 			where
 				$($bound_ty: $bound_trait),*
 			{
+				#[allow(clippy::inline_always, clippy::new_without_default)]
+				#[inline(always)]
+				pub fn new($($env: $env_type),*) -> Self {
+					Self {
+						$($env: $env,)*
+						marker: $crate::internal::core::marker::PhantomData,
+					}
+				}
+				#[inline]
+				fn run(&$self, ($($arg,)*): ($($arg_type,)*)) -> $output
+				where
+					$($fn_bound_ty: $fn_bound_trait),*
+					$body
+			}
+			impl<$($t),*> Clone for $name<$($t),*>
+			where
+				$($bound_ty: $bound_trait,)*
+				$($env_type: Clone,)*
+			{
+				#[inline]
+				fn clone(&self) -> Self {
+					Self {
+						$($env: self.$env.clone(),)*
+						marker: $crate::internal::core::marker::PhantomData,
+					}
+				}
+			}
+			impl<$($t),*> $crate::internal::serde::Serialize for $name<$($t),*>
+			where
+				$($bound_ty: $bound_trait,)*
+				$($env_type: $crate::internal::serde::Serialize,)*
+			{
+				fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error> where S: $crate::internal::serde::Serializer {
+					$crate::internal::serde::Serialize::serialize(&($(&self.$env,)*), serializer)
+				}
+			}
+			impl<'de, $($t),*> $crate::internal::serde::Deserialize<'de> for $name<$($t),*>
+			where
+				$($bound_ty: $bound_trait,)*
+				$($env_type: $crate::internal::serde::Deserialize<'de>,)*
+			{
+				fn deserialize<D>(deserializer: D) -> Result<Self, D::Error> where D: $crate::internal::serde::Deserializer<'de> {
+					<($($env_type,)*) as $crate::internal::serde::Deserialize>::deserialize(deserializer).map(|($($env,)*)| {
+						Self {
+							$($env,)*
+							marker: $crate::internal::core::marker::PhantomData
+						}
+					})
+				}
+			}
+			#[$crate::desugar]
+			impl<$($t),*> $crate::traits::FnOnce($($arg_type,)*) -> $output for $name<$($t),*>
+			where
+				$($bound_ty: $bound_trait),*
+				$($fn_bound_ty: $fn_bound_trait),*
+			{
+				#[allow(clippy::inline_always)]
+				#[inline(always)]
+				fn call_once(self, args: ($($arg_type,)*)) -> Self::Output {
+					self.run(args)
+				}
+			}
+			#[$crate::desugar]
+			impl<$($t),*> $crate::traits::FnMut($($arg_type,)*) -> $output for $name<$($t),*>
+			where
+				$($bound_ty: $bound_trait),*
+				$($fn_bound_ty: $fn_bound_trait),*
+			{
+				#[allow(clippy::inline_always)]
+				#[inline(always)]
 				fn call_mut(&mut self, args: ($($arg_type,)*)) -> Self::Output {
-					unsafe { $crate::internal::transmute(self.run(args)) }
+					$crate::internal::transmute(self.run(args))
+				}
+			}
+			#[$crate::desugar]
+			impl<$($t),*> $crate::traits::Fn($($arg_type,)*) -> $output for $name<$($t),*>
+			where
+				$($bound_ty: $bound_trait),*
+				$($fn_bound_ty: $fn_bound_trait),*
+			{
+				#[allow(clippy::inline_always)]
+				#[inline(always)]
+				fn call(&self, args: ($($arg_type,)*)) -> Self::Output {
+					$crate::internal::transmute(self.run(args))
 				}
 			}
 		};
@@ -311,14 +456,17 @@ pub mod internal {
 	)]
 	pub struct a_variable;
 
+	/// Obviously heinously unsafe but don't declare as such to avoid macro
+	/// unavoidably triggering `unsafe_code`
 	#[allow(clippy::missing_safety_doc)]
-	pub unsafe fn transmute<T, U>(e: T) -> U {
+	#[inline(always)]
+	pub fn transmute<T, U>(e: T) -> U {
 		use std::mem::{self, align_of, size_of};
 		assert_eq!(
 			(size_of::<T>(), align_of::<T>()),
 			(size_of::<U>(), align_of::<U>())
 		);
-		let ret = mem::transmute_copy(&e);
+		let ret = unsafe { mem::transmute_copy(&e) };
 		mem::forget(e);
 		ret
 	}
@@ -389,6 +537,7 @@ pub mod traits {
 	{
 		type Output = F::Output;
 
+		#[inline(always)]
 		fn call_once_box(self: Box<F>, args: A) -> F::Output {
 			self.call_once(args)
 		}
@@ -403,6 +552,7 @@ pub mod traits {
 			{
 				type Output = O;
 
+				#[inline(always)]
 				fn call_once(self, ($($t,)*): ($($t,)*)) -> Self::Output {
 					self($($t,)*)
 				}
@@ -423,6 +573,7 @@ pub mod traits {
 	{
 		type Output = T::Output;
 
+		#[inline(always)]
 		fn call_once(self, args: Args) -> Self::Output {
 			self.call_once(args)
 		}
@@ -435,6 +586,7 @@ pub mod traits {
 			where
 				T: ops::FnMut($($t,)*) -> O,
 			{
+				#[inline(always)]
 				fn call_mut(&mut self, ($($t,)*): ($($t,)*)) -> Self::Output {
 					self($($t,)*)
 				}
@@ -453,6 +605,7 @@ pub mod traits {
 	where
 		T: ops::FnMut<Args>,
 	{
+		#[inline(always)]
 		fn call_mut(&mut self, args: Args) -> Self::Output {
 			self.call_mut(args)
 		}
@@ -465,6 +618,7 @@ pub mod traits {
 			where
 				T: ops::Fn($($t,)*) -> O,
 			{
+				#[inline(always)]
 				fn call(&self, ($($t,)*): ($($t,)*)) -> Self::Output {
 					self($($t,)*)
 				}
@@ -483,6 +637,7 @@ pub mod traits {
 	where
 		T: ops::Fn<Args>,
 	{
+		#[inline(always)]
 		fn call(&self, args: Args) -> Self::Output {
 			self.call(args)
 		}
@@ -535,6 +690,7 @@ pub mod structs {
 		F: internal::FnOnce<I>,
 	{
 		type Output = F::Output;
+
 		#[inline(always)]
 		fn call_once(self, args: I) -> Self::Output {
 			self.f.call_once(args)
@@ -546,6 +702,7 @@ pub mod structs {
 		F: internal::FnOnce<I>,
 	{
 		type Output = F::Output;
+
 		#[inline(always)]
 		extern "rust-call" fn call_once(self, args: I) -> Self::Output {
 			self.f.call_once(args)
@@ -591,6 +748,7 @@ pub mod structs {
 		F: internal::FnOnce<I>,
 	{
 		type Output = F::Output;
+
 		#[inline(always)]
 		fn call_once(self, args: I) -> Self::Output {
 			self.f.call_once(args)
@@ -602,6 +760,7 @@ pub mod structs {
 		F: internal::FnOnce<I>,
 	{
 		type Output = F::Output;
+
 		#[inline(always)]
 		extern "rust-call" fn call_once(self, args: I) -> Self::Output {
 			self.f.call_once(args)
@@ -667,6 +826,7 @@ pub mod structs {
 		F: internal::FnOnce<I>,
 	{
 		type Output = F::Output;
+
 		#[inline(always)]
 		fn call_once(self, args: I) -> Self::Output {
 			self.f.call_once(args)
@@ -678,6 +838,7 @@ pub mod structs {
 		F: internal::FnOnce<I>,
 	{
 		type Output = F::Output;
+
 		#[inline(always)]
 		extern "rust-call" fn call_once(self, args: I) -> Self::Output {
 			self.f.call_once(args)

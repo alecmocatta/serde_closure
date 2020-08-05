@@ -32,6 +32,18 @@ impl<T: ?Sized> Various for T where
 {
 }
 
+struct Struct;
+
+#[serde_closure::desugar]
+impl traits::FnOnce() for Struct {
+	fn call_once(self, _args: ()) -> Self::Output {}
+}
+
+#[serde_closure::desugar]
+impl<T> traits::FnOnce(&String, &Vec<T>) for Struct {
+	fn call_once(self, _args: (&String, &Vec<T>)) -> Self::Output {}
+}
+
 #[serde_closure::desugar]
 trait Pool {
 	type Pool;
