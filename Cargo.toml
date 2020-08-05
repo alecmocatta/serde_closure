@@ -2,7 +2,7 @@
 
 [package]
 name = "serde_closure"
-version = "0.3.1"
+version = "0.3.2"
 license = "MIT OR Apache-2.0"
 authors = ["Alec Mocatta <alec@mocatta.net>"]
 categories = ["development-tools","encoding","rust-patterns","network-programming"]
@@ -23,7 +23,7 @@ azure-devops = { project = "alecmocatta/serde_closure", pipeline = "tests", buil
 maintenance = { status = "actively-developed" }
 
 [dependencies]
-serde_closure_derive = { version = "=0.3.1", path = "serde_closure_derive" }
+serde_closure_derive = { version = "=0.3.2", path = "serde_closure_derive" }
 serde = { version = "1.0", features = ["derive"] }
 
 [build-dependencies]

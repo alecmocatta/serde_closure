@@ -165,7 +165,7 @@
 //! automatically serializable and deserializable with
 //! [`serde`](https://github.com/serde-rs/serde).
 
-#![doc(html_root_url = "https://docs.rs/serde_closure/0.3.1")]
+#![doc(html_root_url = "https://docs.rs/serde_closure/0.3.2")]
 #![cfg_attr(nightly, feature(unboxed_closures, fn_traits))]
 #![warn(
 	missing_copy_implementations,
@@ -456,9 +456,10 @@ pub mod internal {
 	)]
 	pub struct a_variable;
 
+	/// Obviously heinously unsafe but don't declare as such to avoid macro
+	/// unavoidably triggering `unsafe_code`
 	#[allow(clippy::missing_safety_doc)]
 	#[inline(always)]
-	/// Obviously heinously unsafe but don't declare as such to avoid triggering `unsafe_code`
 	pub fn transmute<T, U>(e: T) -> U {
 		use std::mem::{self, align_of, size_of};
 		assert_eq!(

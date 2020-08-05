@@ -10,7 +10,7 @@
 //! See [`serde_closure`](https://docs.rs/serde_closure) for
 //! documentation.
 
-#![doc(html_root_url = "https://docs.rs/serde_closure_derive/0.3.1")]
+#![doc(html_root_url = "https://docs.rs/serde_closure_derive/0.3.2")]
 
 use proc_macro2::{Span, TokenStream};
 use quote::{quote, ToTokens};
