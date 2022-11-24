@@ -7,7 +7,13 @@
 	unreachable_pub,
 	clippy::pedantic
 )]
-#![allow(clippy::too_many_lines, clippy::many_single_char_names, clippy::self_assignment, clippy::uninlined_format_args, unused_imports)]
+#![allow(
+	clippy::too_many_lines,
+	clippy::many_single_char_names,
+	clippy::self_assignment,
+	clippy::uninlined_format_args,
+	unused_imports
+)]
 
 use serde::{de::DeserializeOwned, Serialize};
 use std::{fmt::Debug, mem::size_of};
