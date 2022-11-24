@@ -7,6 +7,7 @@
 	unreachable_pub,
 	clippy::pedantic
 )]
+#![allow(clippy::no_effect_underscore_binding, clippy::unnecessary_wraps)]
 
 use serde::{de::DeserializeOwned, Serialize};
 use std::{fmt::Debug, hash::Hash};
