@@ -10,11 +10,18 @@
 //! See [`serde_closure`](https://docs.rs/serde_closure) for
 //! documentation.
 
-#![doc(html_root_url = "https://docs.rs/serde_closure_derive/0.3.2")]
+#![doc(html_root_url = "https://docs.rs/serde_closure_derive/0.3.3")]
+#![allow(
+	unknown_lints,
+	clippy::default_trait_access,
+	clippy::unused_self,
+	clippy::if_not_else,
+	clippy::manual_let_else
+)]
 
 use proc_macro2::{Span, TokenStream};
 use quote::{quote, ToTokens};
-use std::{collections::HashSet, iter, iter::successors, mem::take, str};
+use std::{collections::HashSet, convert::TryInto, iter, iter::successors, mem::take, str};
 use syn::{
 	parse2, parse_macro_input, visit_mut::{self, VisitMut}, Arm, AttributeArgs, Block, Error, Expr, ExprArray, ExprAssign, ExprAssignOp, ExprAsync, ExprAwait, ExprBinary, ExprBlock, ExprBox, ExprBreak, ExprCall, ExprCast, ExprClosure, ExprField, ExprForLoop, ExprGroup, ExprIf, ExprIndex, ExprLet, ExprLoop, ExprMacro, ExprMatch, ExprMethodCall, ExprParen, ExprPath, ExprRange, ExprReference, ExprRepeat, ExprReturn, ExprStruct, ExprTry, ExprTryBlock, ExprTuple, ExprType, ExprUnary, ExprUnsafe, ExprWhile, ExprYield, FieldValue, GenericParam, Ident, ImplItem, Item, ItemImpl, Lifetime, LifetimeDef, Local, Member, Pat, PatBox, PatIdent, PatReference, PatSlice, PatTuple, PatTupleStruct, PatType, Path, PathArguments, PathSegment, ReturnType, Stmt, TraitBound, Type, TypeInfer, TypeReference, TypeTuple, UnOp
 };
@@ -87,16 +94,16 @@ impl Desugar {
 				inputs.push_punct(Default::default());
 			}
 			let output = match &args.output {
-				ReturnType::Type(_, type_) => (&**type_).clone(),
+				ReturnType::Type(_, type_) => (**type_).clone(),
 				ReturnType::Default => Type::Tuple(TypeTuple {
 					paren_token: Default::default(),
 					elems: Default::default(),
 				}),
 			};
 			*arg = PathArguments::AngleBracketed(if !return_output {
-				syn::parse2(quote! { <(#inputs), Output = #output> }).unwrap()
+				parse2(quote! { <(#inputs), Output = #output> }).unwrap()
 			} else {
-				syn::parse2(quote! { <(#inputs)> }).unwrap()
+				parse2(quote! { <(#inputs)> }).unwrap()
 			});
 			(lifetimes, if return_output { Some(output) } else { None })
 		} else {
@@ -112,7 +119,7 @@ impl VisitMut for Desugar {
 			.0;
 		if lifetimes > 0 {
 			let span = Span::call_site();
-			let empty = syn::parse2(quote! {for <>}).unwrap();
+			let empty = parse2(quote! {for <>}).unwrap();
 			i.lifetimes = Some(i.lifetimes.clone().unwrap_or(empty));
 			i.lifetimes
 				.as_mut()
@@ -125,7 +132,7 @@ impl VisitMut for Desugar {
 					))
 				}));
 		}
-		visit_mut::visit_trait_bound_mut(self, i)
+		visit_mut::visit_trait_bound_mut(self, i);
 	}
 	fn visit_item_impl_mut(&mut self, i: &mut ItemImpl) {
 		if let Some((_, path, _)) = &mut i.trait_ {
@@ -146,12 +153,12 @@ impl VisitMut for Desugar {
 			if path.segments.last().unwrap().ident == "FnOnce" {
 				if let Some(output) = output {
 					i.items.push(ImplItem::Type(
-						syn::parse2(quote! { type Output = #output; }).unwrap(),
+						parse2(quote! { type Output = #output; }).unwrap(),
 					));
 				}
 			}
 		}
-		visit_mut::visit_item_impl_mut(self, i)
+		visit_mut::visit_item_impl_mut(self, i);
 	}
 }
 
@@ -171,7 +178,11 @@ impl Kind {
 	}
 }
 
-#[allow(clippy::cognitive_complexity)]
+#[allow(
+	clippy::cognitive_complexity,
+	clippy::unnecessary_wraps,
+	clippy::too_many_lines
+)]
 fn impl_closure(mut closure: ExprClosure, kind: Kind) -> Result<TokenStream, Error> {
 	let span = Span::call_site(); // TODO: def_site() https://github.com/rust-lang/rust/issues/54724
 	let name_string = kind.name();
@@ -214,7 +225,7 @@ fn impl_closure(mut closure: ExprClosure, kind: Kind) -> Result<TokenStream, Err
 	let env_variables = &env_variables;
 	let env_variable_names = &env_variables
 		.iter()
-		.map(|ident| ident.to_string())
+		.map(ToString::to_string)
 		.collect::<Vec<_>>();
 	let closure = if let Expr::Closure(closure) = closure {
 		closure
@@ -261,8 +272,7 @@ fn impl_closure(mut closure: ExprClosure, kind: Kind) -> Result<TokenStream, Err
 	})
 	.unwrap();
 	let env_deref: Expr = parse2(match kind {
-		Kind::Fn => quote! { *#env_name },
-		Kind::FnMut => quote! { *#env_name },
+		Kind::Fn | Kind::FnMut => quote! { *#env_name },
 		Kind::FnOnce => quote! { #env_name },
 	})
 	.unwrap();
@@ -582,7 +592,7 @@ fn pat_to_type(pat: &Pat) -> Type {
 	match pat {
 		Pat::Type(pat_type) => {
 			if let Type::Infer(_) = *pat_type.ty {
-				pat_to_type(&*pat_type.pat)
+				pat_to_type(&pat_type.pat)
 			} else {
 				(*pat_type.ty).clone()
 			}
@@ -651,7 +661,7 @@ impl<'a> State<'a> {
 			| Pat::Type(PatType { pat, .. }) => self.pat(&mut *pat),
 			Pat::Or(pat_or) => {
 				for case in &mut pat_or.cases {
-					self.pat(case)
+					self.pat(case);
 				}
 			}
 			Pat::Slice(PatSlice { elems, .. })
@@ -661,7 +671,7 @@ impl<'a> State<'a> {
 				..
 			}) => {
 				for elem in elems {
-					self.pat(elem)
+					self.pat(elem);
 				}
 			}
 			Pat::Range(pat_range) => {
@@ -670,7 +680,7 @@ impl<'a> State<'a> {
 			}
 			Pat::Struct(pat_struct) => {
 				for field in &mut pat_struct.fields {
-					self.pat(&mut *field.pat)
+					self.pat(&mut field.pat);
 				}
 			}
 			_ => (),
@@ -707,6 +717,7 @@ impl<'a> State<'a> {
 			.collect();
 	}
 
+	#[allow(clippy::too_many_lines)]
 	fn expr(&mut self, expr: &mut Expr, is_func: bool) {
 		match expr {
 			Expr::Array(ExprArray { elems, .. }) | Expr::Tuple(ExprTuple { elems, .. }) => {
@@ -763,7 +774,7 @@ impl<'a> State<'a> {
 					Expr::Path(ExprPath { path, .. })
 						if path.leading_colon.is_none() && path.segments.len() == 1 =>
 					{
-						self.expr(func, true)
+						self.expr(func, true);
 					}
 					_ => self.expr(func, false),
 				}
@@ -944,7 +955,7 @@ fn bijective_base(n: u64, base: u64, digits: impl Fn(u8) -> u8) -> String {
 		.iter_mut()
 		.rev()
 		.zip(divided)
-		.map(|(c, n)| *c = digits((n % base) as u8))
+		.map(|(c, n)| *c = digits((n % base).try_into().unwrap()))
 		.count();
 	let index = BUF_SIZE - written;
 

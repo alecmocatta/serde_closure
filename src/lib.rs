@@ -165,8 +165,8 @@
 //! automatically serializable and deserializable with
 //! [`serde`](https://github.com/serde-rs/serde).
 
-#![doc(html_root_url = "https://docs.rs/serde_closure/0.3.2")]
-#![cfg_attr(nightly, feature(unboxed_closures, fn_traits))]
+#![doc(html_root_url = "https://docs.rs/serde_closure/0.3.3")]
+#![cfg_attr(nightly, feature(unboxed_closures, fn_traits, tuple_trait))]
 #![warn(
 	missing_copy_implementations,
 	missing_debug_implementations,
@@ -482,6 +482,8 @@ pub mod traits {
 
 	#![allow(non_snake_case)]
 
+	#[cfg(nightly)]
+	use std::marker::Tuple;
 	use std::ops;
 
 	/// Supertrait of [`std::ops::FnOnce`] that is usable on stable Rust. It is
@@ -567,7 +569,7 @@ pub mod traits {
 	#[cfg(not(nightly))]
 	fn_once!(A B C D E F G H I J K L);
 	#[cfg(nightly)]
-	impl<T, Args> FnOnce<Args> for T
+	impl<T, Args: Tuple> FnOnce<Args> for T
 	where
 		T: ops::FnOnce<Args>,
 	{
@@ -601,7 +603,7 @@ pub mod traits {
 	#[cfg(not(nightly))]
 	fn_mut!(A B C D E F G H I J K L);
 	#[cfg(nightly)]
-	impl<T, Args> FnMut<Args> for T
+	impl<T, Args: Tuple> FnMut<Args> for T
 	where
 		T: ops::FnMut<Args>,
 	{
@@ -633,7 +635,7 @@ pub mod traits {
 	#[cfg(not(nightly))]
 	fn_ref!(A B C D E F G H I J K L);
 	#[cfg(nightly)]
-	impl<T, Args> Fn<Args> for T
+	impl<T, Args: Tuple> Fn<Args> for T
 	where
 		T: ops::Fn<Args>,
 	{
@@ -657,6 +659,8 @@ pub mod structs {
 
 	use serde::{Deserialize, Serialize};
 	use std::fmt::{self, Debug};
+	#[cfg(nightly)]
+	use std::marker::Tuple;
 
 	use super::internal;
 
@@ -697,7 +701,7 @@ pub mod structs {
 		}
 	}
 	#[cfg(nightly)]
-	impl<F, I> std::ops::FnOnce<I> for FnOnce<F>
+	impl<F, I: Tuple> std::ops::FnOnce<I> for FnOnce<F>
 	where
 		F: internal::FnOnce<I>,
 	{
@@ -755,7 +759,7 @@ pub mod structs {
 		}
 	}
 	#[cfg(nightly)]
-	impl<F, I> std::ops::FnOnce<I> for FnMut<F>
+	impl<F, I: Tuple> std::ops::FnOnce<I> for FnMut<F>
 	where
 		F: internal::FnOnce<I>,
 	{
@@ -778,7 +782,7 @@ pub mod structs {
 		}
 	}
 	#[cfg(nightly)]
-	impl<F, I> std::ops::FnMut<I> for FnMut<F>
+	impl<F, I: Tuple> std::ops::FnMut<I> for FnMut<F>
 	where
 		F: internal::FnMut<I>,
 	{
@@ -833,7 +837,7 @@ pub mod structs {
 		}
 	}
 	#[cfg(nightly)]
-	impl<F, I> std::ops::FnOnce<I> for Fn<F>
+	impl<F, I: Tuple> std::ops::FnOnce<I> for Fn<F>
 	where
 		F: internal::FnOnce<I>,
 	{
@@ -856,7 +860,7 @@ pub mod structs {
 		}
 	}
 	#[cfg(nightly)]
-	impl<F, I> std::ops::FnMut<I> for Fn<F>
+	impl<F, I: Tuple> std::ops::FnMut<I> for Fn<F>
 	where
 		F: internal::FnMut<I>,
 	{
@@ -877,7 +881,7 @@ pub mod structs {
 		}
 	}
 	#[cfg(nightly)]
-	impl<F, I> std::ops::Fn<I> for Fn<F>
+	impl<F, I: Tuple> std::ops::Fn<I> for Fn<F>
 	where
 		F: internal::Fn<I>,
 	{
