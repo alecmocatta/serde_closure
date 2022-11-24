@@ -10,7 +10,7 @@
 //! See [`serde_closure`](https://docs.rs/serde_closure) for
 //! documentation.
 
-#![doc(html_root_url = "https://docs.rs/serde_closure_derive/0.3.2")]
+#![doc(html_root_url = "https://docs.rs/serde_closure_derive/0.3.3")]
 #![allow(
 	unknown_lints,
 	clippy::default_trait_access,
